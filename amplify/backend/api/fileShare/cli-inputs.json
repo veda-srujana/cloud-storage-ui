@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "paths": {
+    "/share": {
+      "name": "/share",
+      "lambdaFunction": "cloudstorageaf66d458",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "read",
+          "update"
+        ]
+      }
+    }
+  }
+}

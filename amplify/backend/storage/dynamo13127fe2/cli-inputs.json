@@ -1,0 +1,14 @@
+{
+  "resourceName": "dynamo13127fe2",
+  "tableName": "dynamo13127fe2",
+  "partitionKey": {
+    "fieldName": "userId",
+    "fieldType": "string"
+  },
+  "sortKey": {
+    "fieldName": "fileId",
+    "fieldType": "string"
+  },
+  "gsi": [],
+  "triggerFunctions": []
+}

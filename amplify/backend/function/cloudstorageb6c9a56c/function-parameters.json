@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "auth": {
+      "cloudstorage029cbf24": [
+        "read",
+        "update",
+        "delete"
+      ]
+    },
+    "storage": {
+      "storagedynamo": [
+        "read",
+        "update",
+        "delete"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}

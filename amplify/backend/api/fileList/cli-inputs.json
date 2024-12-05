@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "paths": {
+    "/files": {
+      "name": "/files",
+      "lambdaFunction": "cloudstorageccb51200",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "read"
+        ]
+      }
+    }
+  }
+}

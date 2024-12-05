@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "auth": {
+      "cloudstorage029cbf24": [
+        "create"
+      ]
+    },
+    "storage": {
+      "storagedynamo": [
+        "create"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "paths": {
+    "/download": {
+      "name": "/download",
+      "lambdaFunction": "cloudstorage4c15b46d",
+      "permissions": {
+        "setting": "protected",
+        "auth": [
+          "read"
+        ],
+        "guest": [
+          "read"
+        ]
+      }
+    }
+  }
+}

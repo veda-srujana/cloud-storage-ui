@@ -1,0 +1,440 @@
+{
+  "api": {
+    "fileDelete": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "cloudstorageb6c9a56c"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "fileDownload": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "cloudstorage4c15b46d"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "fileList": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "cloudstorageccb51200"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "fileOpApi": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "fileOperations"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "fileOperationApi": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "fileOperations"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "fileRename": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "cloudstorageebc00367"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "fileShare": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "cloudstorageaf66d458"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "fileUpload": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "cloudstoragef8ce5c42"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    }
+  },
+  "auth": {
+    "cloudstorage029cbf24": {
+      "customAuth": false,
+      "dependsOn": [],
+      "frontendAuthConfig": {
+        "mfaConfiguration": "OFF",
+        "mfaTypes": [
+          "SMS"
+        ],
+        "passwordProtectionSettings": {
+          "passwordPolicyCharacters": [],
+          "passwordPolicyMinLength": 8
+        },
+        "signupAttributes": [
+          "EMAIL"
+        ],
+        "socialProviders": [],
+        "usernameAttributes": [
+          "EMAIL"
+        ],
+        "verificationMechanisms": [
+          "EMAIL"
+        ]
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito"
+    }
+  },
+  "function": {
+    "cloudstorage4c15b46d": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "cloudstorage029cbf24"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn",
+            "StreamArn"
+          ],
+          "category": "storage",
+          "resourceName": "storagedynamo"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "cloudstorageaf66d458": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "cloudstorage029cbf24"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn",
+            "StreamArn"
+          ],
+          "category": "storage",
+          "resourceName": "storagedynamo"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "cloudstorageb6c9a56c": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "cloudstorage029cbf24"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn",
+            "StreamArn"
+          ],
+          "category": "storage",
+          "resourceName": "storagedynamo"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "cloudstorageccb51200": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "cloudstorage029cbf24"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn",
+            "StreamArn"
+          ],
+          "category": "storage",
+          "resourceName": "storagedynamo"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "cloudstorageebc00367": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "cloudstorage029cbf24"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn",
+            "StreamArn"
+          ],
+          "category": "storage",
+          "resourceName": "storagedynamo"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "cloudstoragef8ce5c42": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "cloudstorage029cbf24"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn",
+            "StreamArn"
+          ],
+          "category": "storage",
+          "resourceName": "storagedynamo"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "fileOperations": {
+      "build": true,
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "lambdaAuthorizer": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_cloudstorage4c15b46d_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorage4c15b46d"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorage4c15b46d_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorage4c15b46d"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageaf66d458_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageaf66d458"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageaf66d458_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageaf66d458"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageb6c9a56c_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageb6c9a56c"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageb6c9a56c_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageb6c9a56c"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageccb51200_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageccb51200"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageccb51200_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageccb51200"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageebc00367_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageebc00367"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstorageebc00367_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstorageebc00367"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstoragef8ce5c42_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstoragef8ce5c42"
+        }
+      ]
+    },
+    "AMPLIFY_function_cloudstoragef8ce5c42_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cloudstoragef8ce5c42"
+        }
+      ]
+    },
+    "AMPLIFY_function_fileOperations_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "fileOperations"
+        }
+      ]
+    },
+    "AMPLIFY_function_fileOperations_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "fileOperations"
+        }
+      ]
+    },
+    "AMPLIFY_function_lambdaAuthorizer_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "lambdaAuthorizer"
+        }
+      ]
+    },
+    "AMPLIFY_function_lambdaAuthorizer_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "lambdaAuthorizer"
+        }
+      ]
+    }
+  },
+  "storage": {
+    "dynamo13127fe2": {
+      "providerPlugin": "awscloudformation",
+      "service": "DynamoDB"
+    },
+    "s30dce74bf": {
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "S3"
+    },
+    "storagedynamo": {
+      "providerPlugin": "awscloudformation",
+      "service": "DynamoDB"
+    }
+  }
+}

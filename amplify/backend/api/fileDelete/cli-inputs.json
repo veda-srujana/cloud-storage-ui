@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "paths": {
+    "/delete": {
+      "name": "/delete",
+      "lambdaFunction": "cloudstorageb6c9a56c",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    }
+  }
+}

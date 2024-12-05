@@ -1,0 +1,14 @@
+{
+  "resourceName": "storagedynamo",
+  "tableName": "storagedynamo",
+  "partitionKey": {
+    "fieldName": "userId",
+    "fieldType": "string"
+  },
+  "sortKey": {
+    "fieldName": "fileId",
+    "fieldType": "string"
+  },
+  "gsi": [],
+  "triggerFunctions": []
+}

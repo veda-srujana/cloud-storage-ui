@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "paths": {
+    "/rename": {
+      "name": "/rename",
+      "lambdaFunction": "cloudstorageebc00367",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "update"
+        ]
+      }
+    }
+  }
+}
