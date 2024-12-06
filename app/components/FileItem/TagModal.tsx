@@ -1,6 +1,6 @@
 // File: components/FileItem/TagModal.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaCheck, FaTimes } from 'react-icons/fa';
 
 interface TagModalProps {
@@ -17,6 +17,10 @@ const TagModal: React.FC<TagModalProps> = ({
   currentTag,
 }) => {
   const [selectedTag, setSelectedTag] = useState<string>(currentTag || '');
+
+  useEffect(() => {
+    setSelectedTag(currentTag || '');
+  }, [currentTag, isOpen]);
 
   const predefinedTags = ['Star', 'Important', 'Personal', 'Work'];
 
@@ -39,13 +43,15 @@ const TagModal: React.FC<TagModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Tag File</h2>
-        <label className="block text-gray-700 mb-2">Select a Tag:</label>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 max-w-md p-6">
+        <h2 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200">
+          Tag File
+        </h2>
+        <label className="block text-gray-700 dark:text-gray-200 mb-2">Select a Tag:</label>
         <select
           value={selectedTag}
           onChange={(e) => setSelectedTag(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4"
+          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700 dark:text-gray-200"
         >
           <option value="">-- Select a Tag --</option>
           {predefinedTags.map((tag) => (
@@ -54,18 +60,18 @@ const TagModal: React.FC<TagModalProps> = ({
             </option>
           ))}
         </select>
-        <label className="block text-gray-700 mb-2">Or Enter a Custom Tag:</label>
+        <label className="block text-gray-700 dark:text-gray-200 mb-2">Or Enter a Custom Tag:</label>
         <input
           type="text"
           value={selectedTag}
           onChange={(e) => setSelectedTag(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-lg mb-4"
+          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-4 dark:bg-gray-700 dark:text-gray-200"
           placeholder="Enter custom tag"
         />
         <div className="flex justify-end space-x-4">
           <button
             onClick={handleCancel}
-            className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            className="flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
           >
             <FaTimes className="mr-2" /> Cancel
           </button>

@@ -22,25 +22,21 @@
         "storagedynamo": {}
       },
       "function": {
-        "fileOperations": {
-          "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/fileOperations-7641495457394e675833-build.zip"
-        },
         "lambdaAuthorizer": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
           "s3Key": "amplify-builds/lambdaAuthorizer-35624e7756613755624e-build.zip"
         },
         "cloudstoragef8ce5c42": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstoragef8ce5c42-49796d4e6a59664f6950-build.zip"
+          "s3Key": "amplify-builds/cloudstoragef8ce5c42-61583267735274446e4f-build.zip"
         },
         "cloudstorage4c15b46d": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorage4c15b46d-7436562f6d74795a5132-build.zip"
+          "s3Key": "amplify-builds/cloudstorage4c15b46d-52317a35754347494f2f-build.zip"
         },
         "cloudstorageebc00367": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageebc00367-3758742f53527678755a-build.zip"
+          "s3Key": "amplify-builds/cloudstorageebc00367-4d4e424d767279786f55-build.zip"
         },
         "cloudstorageaf66d458": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
@@ -48,22 +44,29 @@
         },
         "cloudstorageb6c9a56c": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageb6c9a56c-424b6f2b727465686e52-build.zip"
+          "s3Key": "amplify-builds/cloudstorageb6c9a56c-663068445841385a3273-build.zip"
         },
         "cloudstorageccb51200": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageccb51200-474d31664f59592f7476-build.zip"
+          "s3Key": "amplify-builds/cloudstorageccb51200-5730556c76362f6c7152-build.zip"
+        },
+        "userslambda": {
+          "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
+          "s3Key": "amplify-builds/userslambda-45536e577242434f4e67-build.zip"
+        },
+        "taglambda": {
+          "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
+          "s3Key": "amplify-builds/taglambda-4557414576537563342b-build.zip"
         }
       },
       "api": {
-        "fileOperationApi": {},
-        "fileOpApi": {},
         "fileUpload": {},
         "fileDownload": {},
         "fileRename": {},
         "fileShare": {},
         "fileDelete": {},
-        "fileList": {}
+        "fileList": {},
+        "Users": {}
       }
     }
   }

@@ -29,7 +29,7 @@ exports.handler = async (event,context) => {
     const { userId, queryParams } = event;
     console.log("userId:::", userId);
 
-    const { tag, shared, public: isPublic } = queryParams || {};
+    const { tag, shared, public: isPublic , isDeleted} = queryParams || {};
 
 
     console.log("queryParams:::", queryParams);
@@ -58,6 +58,15 @@ exports.handler = async (event,context) => {
       expressionAttributeValues[':isPublic'] = true;
     }
 
+    if (isDeleted === 'true') {
+      filterExpression += filterExpression ? ' AND ' : '';
+      filterExpression += 'isDeleted = :isDeleted';
+      expressionAttributeValues[':isDeleted'] = true;
+    }else{
+      filterExpression += filterExpression ? ' AND ' : '';
+      filterExpression += 'isDeleted = :isDeleted';
+      expressionAttributeValues[':isDeleted'] = false;
+    }
     const params = {
       TableName: process.env.STORAGE_STORAGEDYNAMO_NAME,
       KeyConditionExpression: 'userId = :userId',

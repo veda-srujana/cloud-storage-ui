@@ -1,6 +1,6 @@
 // File: components/FileItem/FileItem.tsx
 
-import React, { ReactNode, useState } from 'react';
+import React, { useState } from 'react';
 import { Menu, Item, useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
 import {
@@ -24,56 +24,30 @@ import ReactTooltip, { Tooltip } from 'react-tooltip';
 import ShareModal from './ShareModal';
 import RenameModal from './RenameModal';
 import TagModal from './TagModal';
-
-const fileTypeIcons: { [key: string]: ReactNode } = {
-  'application/pdf': <FaFilePdf className="text-red-500" />,
-  'image/jpeg': <FaFileImage className="text-yellow-500" />,
-  'image/png': <FaFileImage className="text-yellow-500" />,
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (
-    <FaFileWord className="text-blue-500" />
-  ),
-  'application/msword': <FaFileWord className="text-blue-500" />,
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (
-    <FaFileExcel className="text-green-500" />
-  ),
-  'application/vnd.ms-excel': <FaFileExcel className="text-green-500" />,
-  'application/zip': <FaFileArchive className="text-gray-500" />,
-  'application/x-rar-compressed': <FaFileArchive className="text-gray-500" />,
-  'video/mp4': <FaFileVideo className="text-purple-500" />,
-  'audio/mpeg': <FaFileAudio className="text-pink-500" />,
-  'text/plain': <FaFileAlt className="text-gray-500" />,
-  'application/javascript': <FaFileCode className="text-indigo-500" />,
-  // Add more mappings as needed
-};
+import { FileData } from '../../types/FileData';
 
 interface FileItemProps {
-  fileName: string;
-  fileType: string;
-  fileSize: string;
+  file: FileData;
   onDelete: () => void;
   onDownload: () => void;
   onRename: (newName: string) => void;
-  onShare: () => void;
+  onSharePublic: () => void;
+  onShareInternal: (selectedUsers: string[]) => void;
   onToggleStar: () => void;
-  onTag: (tag: string) => void;
-  starred: boolean;
-  tag: string | null;
+  onTag: (newTag: string) => void;
 }
 
 const FileItem: React.FC<FileItemProps> = ({
-  fileName,
-  fileType,
-  fileSize,
+  file,
   onDelete,
   onDownload,
   onRename,
-  onShare,
+  onSharePublic,
+  onShareInternal,
   onToggleStar,
   onTag,
-  starred,
-  tag,
 }) => {
-  const MENU_ID = `menu-${fileName}`;
+  const MENU_ID = `menu-${file.fileId}`;
   const { show } = useContextMenu({
     id: MENU_ID,
   });
@@ -83,32 +57,42 @@ const FileItem: React.FC<FileItemProps> = ({
     show({ event });
   };
 
-  const FileIcon = fileTypeIcons[fileType] || <FaFileAlt className="text-gray-500" />;
+  const fileTypeIcons: { [key: string]: React.ReactNode } = {
+    'application/pdf': <FaFilePdf className="text-red-500" />,
+    'image/jpeg': <FaFileImage className="text-yellow-500" />,
+    'image/png': <FaFileImage className="text-yellow-500" />,
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (
+      <FaFileWord className="text-blue-500" />
+    ),
+    'application/msword': <FaFileWord className="text-blue-500" />,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (
+      <FaFileExcel className="text-green-500" />
+    ),
+    'application/vnd.ms-excel': <FaFileExcel className="text-green-500" />,
+    'application/zip': <FaFileArchive className="text-gray-500" />,
+    'application/x-rar-compressed': <FaFileArchive className="text-gray-500" />,
+    'video/mp4': <FaFileVideo className="text-purple-500" />,
+    'audio/mpeg': <FaFileAudio className="text-pink-500" />,
+    'text/plain': <FaFileAlt className="text-gray-500" />,
+    'application/javascript': <FaFileCode className="text-indigo-500" />,
+    // Add more mappings as needed
+  };
+
+  const FileIcon = fileTypeIcons[file.fileType] || <FaFileAlt className="text-gray-500" />;
 
   // State for Modals
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
-  // State for Internal Users (could be fetched from an API)
-  const [internalUsers, setInternalUsers] = useState<string[]>([
-    'Alice',
-    'Bob',
-    'Charlie',
-    'David',
-    'Eve',
-    // Add more users or fetch from API
-  ]);
+  // Internal Users List (This should ideally come from your backend or context)
 
   const handleSharePublic = () => {
-    // Implement API call to share publicly
-    onShare(); // Modify as needed
+    onSharePublic();
   };
 
   const handleShareInternal = (selectedUsers: string[]) => {
-    // Implement API call to share with selected internal users
-    console.log('Sharing with internal users:', selectedUsers);
-    onShare(); // Modify as needed
+    onShareInternal(selectedUsers);
   };
 
   const handleRename = (newName: string) => {
@@ -121,18 +105,24 @@ const FileItem: React.FC<FileItemProps> = ({
 
   return (
     <div onContextMenu={handleContextMenu}>
-      <div className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer relative">
+      <div className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer">
         <div className="flex items-center space-x-4">
           {FileIcon}
           <div>
-            <div className="font-semibold">{fileName}</div>
+            <div className="font-semibold">{file.fileName}</div>
             <div className="text-sm text-gray-500">
-              {fileType} - {fileSize}
+              {file.fileType} - {(file.size / (1024 ** 2)).toFixed(2)} MB
             </div>
-            {tag && (
+            {file.tag && (
               <div className="mt-1">
-                <span className="inline-block bg-teal-200 text-teal-800 text-xs px-2 py-1 rounded-full">
-                  {tag}
+                <span
+                  className={`inline-block text-xs px-2 py-1 rounded-full ${
+                    file.tag === 'Star'
+                      ? 'bg-yellow-200 text-yellow-800'
+                      : 'bg-teal-200 text-teal-800'
+                  }`}
+                >
+                  {file.tag}
                 </span>
               </div>
             )}
@@ -151,17 +141,12 @@ const FileItem: React.FC<FileItemProps> = ({
           />
           <FaStar
             className={`text-yellow-500 hover:text-yellow-700 cursor-pointer ${
-              starred ? 'fill-current' : ''
+              file.tag === 'Star' ? 'fill-current' : ''
             }`}
-            data-tip={starred ? 'Unstar' : 'Star'}
+            data-tip={file.tag === 'Star' ? 'Unstar' : 'Star'}
             onClick={(e) => {
               e.stopPropagation();
-              // Toggle star as a tag
-              if (tag === 'Star') {
-                onTag(''); // Remove tag
-              } else {
-                onTag('Star'); // Set tag to 'Star'
-              }
+              onToggleStar();
             }}
             aria-label="Star File"
           />
@@ -217,14 +202,26 @@ const FileItem: React.FC<FileItemProps> = ({
         </Item>
         <Item
           onClick={() => {
-            if (tag === 'Star') {
-              onTag(''); // Remove tag
+            if (file.tag === 'Star') {
+              onTag('');
             } else {
-              onTag('Star'); // Set tag to 'Star'
+              onTag('Star');
             }
           }}
         >
-          <FaStar className="inline mr-2" /> {tag === 'Star' ? 'Unstar' : 'Star'}
+          {file.tag && (
+  <div className="mt-1">
+    <span
+      className={`inline-block text-xs px-2 py-1 rounded-full ${
+        file.tag === 'Star'
+          ? 'bg-yellow-200 text-yellow-800'
+          : 'bg-teal-200 text-teal-800'
+      }`}
+    >
+      {file.tag}
+    </span>
+  </div>
+)}
         </Item>
         <Item onClick={() => setIsTagModalOpen(true)}>
           <FaTag className="inline mr-2" /> Tag
@@ -240,7 +237,6 @@ const FileItem: React.FC<FileItemProps> = ({
         onClose={() => setIsShareModalOpen(false)}
         onSharePublic={handleSharePublic}
         onShareInternal={handleShareInternal}
-        internalUsers={internalUsers}
       />
 
       {/* Rename Modal */}
@@ -248,7 +244,7 @@ const FileItem: React.FC<FileItemProps> = ({
         isOpen={isRenameModalOpen}
         onClose={() => setIsRenameModalOpen(false)}
         onRename={handleRename}
-        currentName={fileName}
+        currentName={file.fileName}
       />
 
       {/* Tag Modal */}
@@ -256,7 +252,7 @@ const FileItem: React.FC<FileItemProps> = ({
         isOpen={isTagModalOpen}
         onClose={() => setIsTagModalOpen(false)}
         onTag={handleTag}
-        currentTag={tag}
+        currentTag={file.tag}
       />
 
       {/* Initialize Tooltips */}

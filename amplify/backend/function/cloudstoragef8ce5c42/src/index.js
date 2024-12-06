@@ -183,7 +183,7 @@ console.log("before busboy")
       userId: userId,
       fileId: fileId,
       fileName: fileName,
-      fileUrl: `https://${bucketName}.s3.amazonaws.com/${userId}/${fileName}`,
+      fileUrl: `https://${bucketName}.s3.amazonaws.com/${userId}/${fileId}-${fileName}`,
       version: 1,
       createdAt: timestamp,
       updatedAt: timestamp,

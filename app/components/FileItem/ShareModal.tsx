@@ -1,25 +1,77 @@
 // File: components/FileItem/ShareModal.tsx
 
-import React, { useState } from 'react';
+import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { FaCheck, FaTimes } from 'react-icons/fa';
+import { CognitoUserPool, CognitoUserSession } from 'amazon-cognito-identity-js';
+import { ToastContainer, toast } from 'react-toastify';
+import awsmobile from '../../../src/aws-exports';
+import { redirect } from 'next/navigation';
 
+
+const userPoolData = {
+  UserPoolId: awsmobile.aws_user_pools_id,
+  ClientId: awsmobile.aws_user_pools_web_client_id,
+};
+
+const userPool = new CognitoUserPool(userPoolData);
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSharePublic: () => void;
   onShareInternal: (selectedUsers: string[]) => void;
-  internalUsers: string[]; // List of internal users
 }
+
 
 const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
   onClose,
   onSharePublic,
   onShareInternal,
-  internalUsers,
 }) => {
   const [shareType, setShareType] = useState<'public' | 'internal' | null>(null);
+  const [internalUsers, setInternalUsers] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchUsers();
+    }
+  }, [isOpen]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      
+        const currentUser = userPool.getCurrentUser();
+        if (!currentUser) {
+          throw new Error('No current user');
+        }
+        currentUser.getSession(async (err: any, session: CognitoUserSession) => {
+          if (err) {
+            console.error('Error getting session during tagging:', err);
+            toast.error('Session error, please log in again.');
+            redirect('/login');
+            setLoading(false);
+            return;
+          }
+      
+          const token = session.getIdToken().getJwtToken();
+      const response = await axios.get('https://ddhancgy3e.execute-api.us-east-1.amazonaws.com/dev/users',
+        {
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+      setInternalUsers(response.data.body.users);
+    })
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      // Handle error (e.g., show a notification)
+    }
+  };
 
   const handleUserSelection = (user: string) => {
     setSelectedUsers((prev) =>
@@ -81,15 +133,15 @@ const ShareModal: React.FC<ShareModalProps> = ({
           <div className="mb-4">
             <label className="block text-gray-700 mb-2">Select Users:</label>
             <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-              {internalUsers.map((user) => (
-                <label key={user} className="flex items-center mb-2">
+              {internalUsers.map((user:any) => (
+                <label key={user.userId} className="flex items-center mb-2">
                   <input
                     type="checkbox"
                     className="form-checkbox h-5 w-5 text-teal-600"
-                    checked={selectedUsers.includes(user)}
-                    onChange={() => handleUserSelection(user)}
+                    checked={selectedUsers.includes(user.userId)}
+                    onChange={() => handleUserSelection(user.userId)}
                   />
-                  <span className="ml-2">{user}</span>
+                  <span className="ml-2">{user.attributeList.given_name}</span>
                 </label>
               ))}
             </div>

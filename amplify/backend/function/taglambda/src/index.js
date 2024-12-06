@@ -9,9 +9,7 @@ Amplify Params - DO NOT EDIT */
 
 /**
  * @type {import('@types/aws-lambda').APIGatewayProxyHandler}
- */// amplify/backend/function/fileDelete/src/index.js
-// File: index.js
-
+ */
 /* Amplify Params - DO NOT EDIT
 	AUTH_CLOUDSTORAGE029CBF24_USERPOOLID
 	ENV
@@ -19,29 +17,36 @@ Amplify Params - DO NOT EDIT */
 	STORAGE_STORAGEDYNAMO_ARN
 	STORAGE_STORAGEDYNAMO_NAME
 	STORAGE_STORAGEDYNAMO_STREAMARN
+	STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME
 Amplify Params - DO NOT EDIT */
 
 /**
  * @type {import('@types/aws-lambda').APIGatewayProxyHandler}
  */
+// amplify/backend/function/fileChangeTag/src/index.js
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+// S3 is optional; remove if not needed
+// const { S3Client } = require("@aws-sdk/client-s3");
 
-// Initialize DynamoDB Document Client
-const client = new DynamoDBClient({ region: process.env.REGION });
-const ddbDocClient = DynamoDBDocumentClient.from(client);
+// Initialize AWS SDK v3 Clients
+const ddbClient = new DynamoDBClient({ region: process.env.REGION });
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+
+// Initialize S3 Client if needed
+// const s3Client = new S3Client({ region: process.env.REGION });
 
 exports.handler = async (event) => {
   try {
     // Parse the request body
-    const { userId, email, username, fileId } = event;
+    const { fileId, newTag, userId } = JSON.parse(event);
 
     // Validate input
-    if (!fileId) {
+    if (!fileId || !newTag) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: "fileId is required" }),
+        body: JSON.stringify({ message: "fileId and newTag are required" }),
       };
     }
 
@@ -67,37 +72,42 @@ exports.handler = async (event) => {
       };
     }
 
-    // Check if the current user is the owner or has access via 'sharedWith'
-    const isOwner = data.Item.userId === userId;
-    //const sharedWith = data.Item.sharedWith || [];
-    const hasAccess = isOwner ;
-    //|| sharedWith.includes(userId);
+    const fileMetadata = data.Item;
+
+    // Validate ownership or access via 'sharedWith'
+    const isOwner = fileMetadata.userId === userId;
+    const sharedWith = fileMetadata.sharedWith || [];
+    const hasAccess = isOwner || sharedWith.includes(userId);
 
     if (!hasAccess) {
       return {
         statusCode: 403,
-        body: JSON.stringify({ message: "Access denied" }),
+        body: JSON.stringify({ message: "You do not have permission to change the tag of this file" }),
       };
     }
 
-    // Check if the file is already marked as deleted
-    if (data.Item.isDeleted) {
+    // Optional: Validate the newTag against a list of allowed tags
+    const allowedTags = ["Recent", "Star", "Important", "Personal", "Work"]; // Customize as needed
+    if (!allowedTags.includes(newTag)) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: "File is already deleted" }),
+        body: JSON.stringify({ message: `Invalid tag. Allowed tags are: ${allowedTags.join(", ")}` }),
       };
     }
 
-    // Update the 'isDeleted' attribute to true
+    // Update the 'tag' attribute in DynamoDB
     const updateParams = {
       TableName: tableName,
       Key: {
         userId: userId,
         fileId: fileId,
       },
-      UpdateExpression: "set isDeleted = :val, updatedAt = :updatedAt",
+      UpdateExpression: "set #tag = :newTag, updatedAt = :updatedAt",
+      ExpressionAttributeNames: {
+        "#tag": "tag", // 'tag' might be a reserved word; aliasing it
+      },
       ExpressionAttributeValues: {
-        ":val": true,
+        ":newTag": newTag,
         ":updatedAt": new Date().toISOString(),
       },
       ReturnValues: "UPDATED_NEW",
@@ -107,19 +117,14 @@ exports.handler = async (event) => {
     const updateResult = await ddbDocClient.send(updateCommand);
 
     return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "OPTIONS,POST",
-          "Access-Control-Allow-Headers": "Content-Type"
-        },
+      statusCode: 200,
       body: JSON.stringify({
-        message: "File marked as deleted successfully",
+        message: "File tag updated successfully",
         updatedAttributes: updateResult.Attributes,
       }),
     };
   } catch (error) {
-    console.error("Error marking file as deleted:", error);
+    console.error("Error updating file tag:", error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Internal Server Error" }),

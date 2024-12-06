@@ -5,30 +5,54 @@
 	STORAGE_STORAGEDYNAMO_ARN
 	STORAGE_STORAGEDYNAMO_NAME
 	STORAGE_STORAGEDYNAMO_STREAMARN
+	STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME
 Amplify Params - DO NOT EDIT */
 
 /**
  * @type {import('@types/aws-lambda').APIGatewayProxyHandler}
- */// amplify/backend/function/fileDownload/src/index.js
+ */
+// amplify/backend/function/fileDownload/src/index.js
 
-const AWS = require('aws-sdk');
-const s3 = new AWS.S3();
-const dynamodb = new AWS.DynamoDB.DocumentClient();
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, GetCommand } = require("@aws-sdk/lib-dynamodb");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+
+// Initialize AWS SDK v3 Clients
+const ddbClient = new DynamoDBClient({ region: process.env.REGION });
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
+
+const s3Client = new S3Client({ region: process.env.REGION });
 
 exports.handler = async (event) => {
-  const { userId, fileId } = JSON.parse(event.body);
-
-  // Fetch file metadata from DynamoDB
-  const params = {
-    TableName: process.env.STORAGE_FILEMETADATA_NAME,
-    Key: {
-      userId: userId,
-      fileId: fileId,
-    },
-  };
-
   try {
-    const data = await dynamodb.get(params).promise();
+    // Parse the request body
+    const { fileId } = JSON.parse(event.body);
+
+    // Extract the current user's ID from the request context
+    const userId = event.requestContext.authorizer.claims.sub;
+
+    // Validate input
+    if (!fileId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: "fileId is required" }),
+      };
+    }
+
+    // DynamoDB table name
+    const tableName = process.env.STORAGE_STORAGEDYNAMO_NAME;
+
+    // Fetch file metadata from DynamoDB
+    const getParams = {
+      TableName: tableName,
+      Key: {
+        userId: userId,
+        fileId: fileId,
+      },
+    };
+
+    const getCommand = new GetCommand(getParams);
+    const data = await ddbDocClient.send(getCommand);
 
     if (!data.Item) {
       return {
@@ -39,30 +63,71 @@ exports.handler = async (event) => {
 
     const fileMetadata = data.Item;
 
-    // Check if the user has permission to access the file
-    if (fileMetadata.userId !== userId && !fileMetadata.sharedWith.includes(userId) && !fileMetadata.isPublic) {
+    // Validate ownership or access via 'sharedWith'
+    const isOwner = fileMetadata.userId === userId;
+    const sharedWith = fileMetadata.sharedWith || [];
+    const hasAccess = isOwner || sharedWith.includes(userId);
+
+    if (!hasAccess) {
       return {
         statusCode: 403,
-        body: JSON.stringify({ message: "Access denied" }),
+        body: JSON.stringify({ message: "You do not have permission to download this file" }),
       };
     }
 
-    // Generate presigned URL for downloading the file
-    const downloadUrl = await s3.getSignedUrlPromise('getObject', {
-      Bucket: process.env.STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME,
-      Key: fileMetadata.fileName,
-      Expires: 60 * 5,
-    });
+    // Check if the file is marked as deleted
+    if (fileMetadata.isDeleted) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: "File is marked as deleted and cannot be downloaded" }),
+      };
+    }
+
+    // Optionally, check if the file is public
+    if (fileMetadata.isPublic) {
+      // You can choose to handle public files differently if needed
+    }
+
+    // Fetch the file from S3
+    const bucketName = process.env.STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME;
+    const objectKey = fileMetadata.fileName;
+
+    const getObjectParams = {
+      Bucket: bucketName,
+      Key: objectKey,
+    };
+
+    const getObjectCommand = new GetObjectCommand(getObjectParams);
+    const s3Response = await s3Client.send(getObjectCommand);
+
+    // Read the stream into a buffer
+    const stream = s3Response.Body;
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+    const fileContent = Buffer.concat(chunks);
+
+    // Determine the MIME type
+    const mimeType = fileMetadata.fileType || 'application/octet-stream';
+
+    // Encode the file content to Base64
+    const base64File = fileContent.toString('base64');
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ downloadUrl }),
+      headers: {
+        'Content-Type': mimeType,
+        'Content-Disposition': `attachment; filename="${fileMetadata.fileName}"`,
+      },
+      isBase64Encoded: true,
+      body: base64File,
     };
   } catch (error) {
-    console.error(error);
+    console.error("Error downloading file:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
+      body: JSON.stringify({ error: "Internal Server Error" }),
     };
   }
 };

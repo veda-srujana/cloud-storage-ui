@@ -2,21 +2,22 @@
 
 import React from 'react';
 import FileItem from '../FileItem/FileItem';
-import { formatBytes } from '../../utils/formatBytes';
+import { FileData } from '../../types/FileData';
 
 interface FileListProps {
-  files: any[];
+  files: FileData[];
   loading: boolean;
   searchTerm: string;
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   sortOrder: string;
   onSortChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  handleDelete: (fileName: string) => void;
-  handleDownload: (fileName: string) => void;
-  handleRename: (fileName: string, newName:string) => void;
-  handleShare: (fileName: string) => void;
-  handleToggleStar: (fileName: string) => void;
-  handleTag: (fileName: string, newtag:string) => void;
+  handleDelete: (fileId: string) => void;
+  handleDownload: (fileId: string) => void;
+  handleRename: (fileId: string, newName: string) => void;
+  handleSharePublic: (fileId: string) => void;
+  handleShareInternal: (fileId: string, selectedUsers: string[]) => void;
+  handleToggleStar: (fileId: string) => void;
+  handleTag: (fileId: string, newTag: string) => void;
 }
 
 const FileList: React.FC<FileListProps> = ({
@@ -29,10 +30,19 @@ const FileList: React.FC<FileListProps> = ({
   handleDelete,
   handleDownload,
   handleRename,
-  handleShare,
+  handleSharePublic,
+  handleShareInternal,
   handleToggleStar,
   handleTag,
 }) => {
+  // Filter files based on search term
+  const filteredFiles = files.filter((file) =>
+    file.fileName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Sorting logic can be handled here or in Home.tsx
+  // For this example, assuming it's already sorted
+
   return (
     <section className="flex-grow bg-white p-4 rounded-lg shadow-lg overflow-y-auto">
       {/* Search and Sorting */}
@@ -60,22 +70,23 @@ const FileList: React.FC<FileListProps> = ({
       ) : (
         <div className="space-y-4">
           {/* File List */}
-          {files.length === 0 ? (
+          {filteredFiles.length === 0 ? (
             <div className="text-center text-gray-500">No files found.</div>
           ) : (
-            files.map((file: any, index: number) => (
+            filteredFiles.map((file) => (
               <FileItem
-                    key={index}
-                    fileName={file.fileName}
-                    fileType={file.fileType}
-                    fileSize={formatBytes(file.size)}
-                    onDelete={() => handleDelete(file.fileName)}
-                    onDownload={() => handleDownload(file.fileName)}
-                    onRename={(newName) => handleRename(file.fileName,newName)}
-                    onShare={() => handleShare(file.fileName)}
-                    onToggleStar={() => handleToggleStar(file.fileName)}
-                    onTag={(newtag) => handleTag(file.fileName,newtag)}
-                    starred={file.tag ==="star"} tag={file.tag}              />
+                key={file.fileId}
+                file={file}
+                onDelete={() => handleDelete(file.fileId)}
+                onDownload={() => handleDownload(file.fileId)}
+                onRename={(newName) => handleRename(file.fileId, newName)}
+                onSharePublic={() => handleSharePublic(file.fileId)}
+                onShareInternal={(selectedUsers) =>
+                  handleShareInternal(file.fileId, selectedUsers)
+                }
+                onToggleStar={() => handleToggleStar(file.fileId)}
+                onTag={(newTag) => handleTag(file.fileId, newTag)}
+              />
             ))
           )}
         </div>
