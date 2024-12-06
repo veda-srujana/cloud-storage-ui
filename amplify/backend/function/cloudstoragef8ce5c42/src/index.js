@@ -8,27 +8,31 @@
 	STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME
 Amplify Params - DO NOT EDIT */
 
-const { S3Client } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
-const { decodeJwt, importJWK, JWTPayload, jwtVerify } = require("jose");
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { decodeProtectedHeader, importJWK, jwtVerify } = require("jose");
 const https = require('https');
-const s3Client = new S3Client({ region: process.env.REGION });
-const dbClient = new DynamoDBClient({ region: process.env.REGION });
-const ddbDocClient = new DynamoDBDocumentClient(dbClient);
+const Busboy = require('busboy');
+const { Writable } = require('stream');
+const { 
+  v1: uuidv1,
+  v4: uuidv4,
+} = require('uuid');
+const region = process.env.REGION;
+const userPoolId = process.env.AUTH_CLOUDSTORAGE029CBF24_USERPOOLID;
+const bucketName = process.env.STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB file size limit
+
+const s3Client = new S3Client({ region });
+const ddbClient = new DynamoDBClient({ region });
+const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
 
 exports.handler = async (event) => {
   console.log('Event received:', event);
-  const file = event.body;
-  const region = process.env.REGION;
-  const userPoolId = process.env.AUTH_CLOUDSTORAGE029CBF24_USERPOOLID;
-  const bucketName = process.env.STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME;
 
   const isBase64Encoded = event.isBase64Encoded;
   const headers = event.headers || {};
-
-  // 1. Extract token from the Authorization header
   const token = headers['Authorization'] || headers['authorization'];
   if (!token) {
     return {
@@ -36,13 +40,9 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Missing or invalid Authorization header' }),
     };
   }
- 
-  console.log("UserpoolID::", userPoolId)
-  console.log("token::", token)
 
 
-  // Extract userId from the user object
-//  2. Fetch the JWKS from Cognito
+  // Fetch JWKS from Cognito
   const jwksUri = `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
   let jwks;
   try {
@@ -55,10 +55,10 @@ exports.handler = async (event) => {
     };
   }
 
-  // 3. Verify the token using Cognito JWKS
+  // Verify the token using Cognito JWKS
   let decodedToken;
   try {
-    decodedToken = await verifyTokenWithCognitoJWKS(token, jwks);
+    decodedToken = await verifyTokenWithCognitoJWKS(token, jwks, region, userPoolId);
   } catch (err) {
     console.error('Token verification failed:', err);
     return {
@@ -67,16 +67,17 @@ exports.handler = async (event) => {
     };
   }
 
-  // Extract userId (sub) from the token
   const userId = decodedToken.sub;
+  console.log('userId received:', userId);
+
   if (!userId) {
     return {
       statusCode: 401,
       body: JSON.stringify({ error: 'Token does not contain a valid sub claim' }),
     };
   }
-console.log("userId",userId)
-  // 4. Check body/base64 and content type
+
+  // Check body
   if (!isBase64Encoded || !event.body) {
     return {
       statusCode: 400,
@@ -84,16 +85,53 @@ console.log("userId",userId)
     };
   }
 
-  // const binaryData = Buffer.from(event.body, 'base64');
-  const { filedata } = event;
-  const fileBuffer = Buffer.from(filedata, 'base64');
-  const fileSize = buffer.length;
-  const fileType = buffer.type; 
-  
+  const binaryData = Buffer.from(event.body, 'base64');
+  const contentType = headers['Content-Type'] || headers['content-type'];
+  if (!contentType || !contentType.startsWith('multipart/form-data')) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Content-Type must be multipart/form-data' }),
+    };
+  }
 
- 
+  let fileName, fileType, size, fileBuffer;
+console.log("before busboy")
+  const busboy =  Busboy({ headers  : { "content-type": contentType}});
 
-  
+  const parsePromise = new Promise((resolve, reject) => {
+    busboy.on('field', (fieldname, val) => {
+      if (fieldname === 'fileName') fileName = val;
+      if (fieldname === 'fileType') fileType = val;
+      if (fieldname === 'size') size = val;
+    });
+
+    busboy.on('file', (fieldname, fileStream) => {
+      if (fieldname === 'file') {
+        const chunks = [];
+        fileStream.on('data', chunk => chunks.push(chunk));
+        fileStream.on('end', () => {
+          fileBuffer = Buffer.concat(chunks);
+        });
+      }
+    });
+
+    busboy.on('finish', () => resolve());
+    busboy.on('error', (err) => reject(err));
+  });
+
+  const input = new Writable({
+    write(chunk, enc, cb) {
+      busboy.write(chunk, enc, cb);
+    }
+  });
+
+  input.on('finish', () => {
+    busboy.end();
+  });
+
+  input.end(binaryData);
+  await parsePromise;
+
   // Validate required fields
   if (!fileName || !fileType || !size || !fileBuffer) {
     return {
@@ -102,6 +140,7 @@ console.log("userId",userId)
     };
   }
 
+  const fileSize = parseInt(size, 10);
   if (isNaN(fileSize)) {
     return {
       statusCode: 400,
@@ -109,7 +148,7 @@ console.log("userId",userId)
     };
   }
 
-  // Server-side file size validation
+  // Server-side file size check
   if (fileBuffer.length > MAX_FILE_SIZE) {
     return {
       statusCode: 400,
@@ -118,16 +157,24 @@ console.log("userId",userId)
   }
 
   const timestamp = new Date().toISOString();
-  const fileId = `${fileName}-${timestamp}`;
+  const fileId = uuidv4();
 
-  // Generate a presigned URL for S3 PUT
-  const s3Params = {
-    Bucket: bucketName,
-    Key: userId+"/"+fileName,
-    ContentType: fileType,
-    Expires: 60 * 5, // 5 minutes
-  };
-  const uploadUrl = await s3Client.getSignedUrlPromise('putObject', s3Params);
+  // Directly upload the file to S3
+  try {
+    console.log("About to start upload....file to s3 for file ID:::",fileId)
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: `${userId}/${fileId}-${fileName}`,
+      Body: fileBuffer,
+      ContentType: fileType
+    }));
+  } catch (uploadErr) {
+    console.log('Error uploading file to S3:', uploadErr);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Error uploading file to S3' }),
+    };
+  }
 
   // Store metadata in DynamoDB
   const dbParams = {
@@ -136,7 +183,7 @@ console.log("userId",userId)
       userId: userId,
       fileId: fileId,
       fileName: fileName,
-      fileUrl: `https://${bucketName}.s3.amazonaws.com/${fileName}`,
+      fileUrl: `https://${bucketName}.s3.amazonaws.com/${userId}/${fileName}`,
       version: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -144,14 +191,30 @@ console.log("userId",userId)
       isPublic: false,
       fileType: fileType,
       size: fileSize,
-      tag: "Recent"
+      tag: "Recent",
+      isDeleted: false,
     },
   };
-  await ddbDocClient.put(dbParams).promise();
+  try {
+    console.log("updating to DB ............... ")
 
+    await ddbDocClient.send(new PutCommand(dbParams));
+  } catch (dbErr) {
+    console.log('Error saving metadata to DynamoDB:', dbErr);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Error saving file metadata' }),
+    };
+  }
+console.log("successfull completed ")
   return {
     statusCode: 200,
-    body: JSON.stringify({ uploadUrl }),
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "OPTIONS,POST",
+      "Access-Control-Allow-Headers": "Content-Type"
+    },
+    body: JSON.stringify({ message: 'File uploaded successfully', fileName: fileName, fileId: fileId }),
   };
 };
 
@@ -181,10 +244,9 @@ function fetchJWKS(jwksUri) {
 /**
  * Verifies the token using Cognito JWKS
  */
-async function verifyTokenWithCognitoJWKS(token, jwks) {
-  const { header } = decodeJwt(token, { complete: true });
-  const kid = header.kid;
-  
+async function verifyTokenWithCognitoJWKS(token, jwks, region, userPoolId) {
+  const protectedHeader = decodeProtectedHeader(token);
+  const kid = protectedHeader.kid;
 
   const jwk = jwks.keys.find(key => key.kid === kid);
   if (!jwk) {
@@ -192,9 +254,11 @@ async function verifyTokenWithCognitoJWKS(token, jwks) {
   }
 
   const publicKey = await importJWK(jwk, jwk.alg || 'RS256');
+  const issuer = `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`;
+
   const { payload } = await jwtVerify(token, publicKey, {
-     issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`,
-    // audience: 'your-audience'
+    issuer: issuer
+    // audience: 'your-audience' if needed
   });
 
   return payload;

@@ -11,7 +11,11 @@
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.699.0",
     "aws-jwt-verify": "^4.0.1",
-    "jose": "^5.9.6"
+    "busboy": "^1.6.0",
+    "https": "^1.0.0",
+    "jose": "^5.9.6",
+    "stream": "^0.0.3",
+    "uuid": "^11.0.3"
   },
   "module": "true"
 }
