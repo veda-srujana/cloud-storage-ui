@@ -32,7 +32,7 @@
         },
         "cloudstoragef8ce5c42": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstoragef8ce5c42-785772347a525774354e-build.zip"
+          "s3Key": "amplify-builds/cloudstoragef8ce5c42-4561456b52756e747354-build.zip"
         },
         "cloudstorage4c15b46d": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
@@ -52,7 +52,7 @@
         },
         "cloudstorageccb51200": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageccb51200-6c333768386f49346636-build.zip"
+          "s3Key": "amplify-builds/cloudstorageccb51200-474d31664f59592f7476-build.zip"
         }
       },
       "api": {

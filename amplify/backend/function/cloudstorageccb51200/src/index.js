@@ -19,26 +19,21 @@ const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb'
 const dbClient = new DynamoDBClient({ region: process.env.REGION });
 const dynamoDbDocClient = DynamoDBDocumentClient.from(dbClient);
 
-exports.handler = async (event) => {
+exports.handler = async (event,context) => {
   try {
-    console.log("event:::", event.requestContext);
+    console.log("event:::", event);
+
+
     
     // Extract userId from Cognito authorizer claims
-    if (!event.requestContext || !event.requestContext.authorizer || !event.requestContext.authorizer.claims) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: 'Unauthorized :::' }),
-      };
-    }
-
-    const userId = event.requestContext.authorizer.claims.sub;
+    const { userId, queryParams } = event;
     console.log("userId:::", userId);
 
-    // Extract query parameters
-    const queryParams = event.queryStringParameters || {};
+    const { tag, shared, public: isPublic } = queryParams || {};
+
+
     console.log("queryParams:::", queryParams);
 
-    const { tag, shared, public: isPublic } = queryParams;
 
     let filterExpression = '';
     let expressionAttributeValues = {
@@ -78,10 +73,13 @@ exports.handler = async (event) => {
 
     // Query DynamoDB using the DynamoDBDocumentClient
     const data = await dynamoDbDocClient.send(command);
-
+    console.log("returning::::reposnse",{
+        statusCode: 200,
+        body: JSON.stringify(data.Items),
+      })
     return {
       statusCode: 200,
-      body: JSON.stringify(data.Items),
+      body: data.Items,
     };
   } catch (error) {
     console.error('Error fetching file metadata:', error);

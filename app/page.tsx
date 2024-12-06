@@ -1,28 +1,23 @@
 "use client";
 
 import { MouseEventHandler, ReactNode, useEffect, useState } from 'react';
-import Auth from '@aws-amplify/auth';
-import API from '@aws-amplify/api';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import axios, { AxiosProgressEvent } from 'axios';
 import { AiOutlineMenu, AiOutlineUpload, AiOutlineSetting, AiOutlineUser } from 'react-icons/ai';
 import { BiFolderMinus, BiLogOut, BiNews } from 'react-icons/bi';
 import { FaFolder, FaFileAlt, FaStar, FaTrash } from 'react-icons/fa';
 import { MdMiscellaneousServices, MdOutlineHelp, MdSdStorage, MdStorage } from 'react-icons/md';
-import awsmobile from '../src/aws-exports';
 import { Amplify } from 'aws-amplify';
+import { CognitoUserPool } from 'amazon-cognito-identity-js';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import awsmobile from '../src/aws-exports';
 
-import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
-
-// Cognito Pool Details
 const userPoolData = {
   UserPoolId: awsmobile.aws_user_pools_id,
   ClientId: awsmobile.aws_user_pools_web_client_id,
 };
-
 const userPool = new CognitoUserPool(userPoolData);
-
-
 
 const Home = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -30,14 +25,15 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
     try {
       Amplify.configure(awsmobile);
-console.log("awas initi:::",awsmobile)
+      console.log("AWS Amplify initialized:", awsmobile);
     } catch (error) {
-      console.error(error+":::::")
+      console.error("Error initializing Amplify:", error);
     }
     checkUser();
   }, []);
@@ -48,6 +44,7 @@ console.log("awas initi:::",awsmobile)
       currentUser.getSession((err: any, session: any) => {
         if (err) {
           console.error('Error getting session:', err);
+          toast.error('Session error, please log in again.');
           router.push('/login');
         } else {
           console.log('Session valid, fetching files...');
@@ -63,69 +60,126 @@ console.log("awas initi:::",awsmobile)
   const fetchFiles = async (token: string) => {
     setLoading(true);
     try {
-      const response = await axios.get('https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/files', {
+      const response = await axios.get('https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files', {
         headers: {
           Authorization: token,
         },
       });
-      setFiles(response.data as any);
+      setFiles(response.data.body as any);
     } catch (error) {
       console.error('Error fetching files:', error);
-    }finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle file upload via API Gateway
-  const handleUpload = async (event: any) => {
-    if (!selectedFile) return;
-    const file = event.target.files[0];
-    if (!file) return;
-    try {
-      setLoading(true);
-      const currentUser = userPool.getCurrentUser();
-
-      if (currentUser) {
-        currentUser.getSession(async (err: any, session: any) => {
-          if (err) {
-            console.error('Error getting session:', err);
-          } else {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await axios.post('https://emklzv4cya.execute-api.us-east-1.amazonaws.com/upload', formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data',
-                Authorization: session.getIdToken().getJwtToken(),
-              },
-            });
-
-            if (response.status === 200) {
-              alert('File uploaded successfully');
-              fetchFiles(session.getIdToken().getJwtToken()); // Refresh file list
-              setSelectedFile(null);
-            }
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
+      toast.error('Error fetching files');
     } finally {
       setLoading(false);
     }
   };
+// Handle file upload
+const handleUpload = async (event: any) => {
+  const file: File = event.target.files[0];
+  if (!file) return; // No file selected, nothing to upload
+  const maxSize = 10 * 1024 * 1024; // 10 MB
+  if (file.size > maxSize) {
+    toast.error('File size exceeds 10 MB, please choose a smaller file.');
+    return;
+  }
+  setSelectedFile(file);
 
-  // Handle file download via API Gateway
+  setLoading(true);
+  const currentUser = userPool.getCurrentUser();
+  if (!currentUser) {
+    toast.error('No current user, please log in.');
+    router.push('/login');
+    // Early return to avoid continuing after redirect
+    setLoading(false);
+    setUploadProgress(0);
+    setSelectedFile(null);
+    return;
+  }
+
+  try {
+    // currentUser.getSession is callback-based, so we continue within that callback
+    currentUser.getSession(async (err: any, session: any) => {
+      if (err) {
+        console.error('Error getting session:', err);
+        toast.error('Session error, please log in again.');
+        router.push('/login');
+        // Reset states after navigation
+        setLoading(false);
+        setUploadProgress(0);
+        setSelectedFile(null);
+        return;
+      }
+
+      try {
+        // Use the 'file' variable directly, since we know it's set
+        const formData = new FormData();
+        formData.append('file', file);
+        // formData.append('fileName', file.name);
+        // formData.append('fileType', file.type);
+        // formData.append('size', file.size.toString());
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        const response = await axios.post(
+          'https://emklzv4cya.execute-api.us-east-1.amazonaws.com/dev/upload',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: session.getIdToken().getJwtToken(),
+            },
+            onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+              if (progressEvent.total) {
+                const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setUploadProgress(progress);
+              }
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          toast.success('File uploaded successfully');
+          await fetchFiles(session.getIdToken().getJwtToken()); // Refresh file list
+          // Reset states after a successful upload
+          setSelectedFile(null);
+          setUploadProgress(0);
+        }
+      } catch (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        toast.error('Error uploading file');
+        // Reset states after upload error
+        setUploadProgress(0);
+        setSelectedFile(null);
+      } finally {
+        setLoading(false);
+      }
+    });
+  } catch (generalError) {
+    console.error('General upload error:', generalError);
+    toast.error('Error uploading file');
+    // Reset states after a general error
+    setUploadProgress(0);
+    setSelectedFile(null);
+    setLoading(false);
+  }
+};
+
+  // Handle file download
   const handleDownload = async (fileName: string) => {
     setLoading(true);
     try {
       const currentUser = userPool.getCurrentUser();
-
       if (currentUser) {
         currentUser.getSession(async (err: any, session: any) => {
           if (err) {
             console.error('Error getting session:', err);
-          } else {
+            toast.error('Session error, please log in again.');
+            router.push('/login');
+            setLoading(false);
+            return;
+          }
+
+          try {
             const response = await axios.get(`https://<api-endpoint>/download/${fileName}`, {
               headers: {
                 Authorization: session.getIdToken().getJwtToken(),
@@ -138,56 +192,85 @@ console.log("awas initi:::",awsmobile)
             link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
+            toast.success('File downloaded successfully');
+          } catch (downloadError) {
+            console.error('Error downloading file:', downloadError);
+            toast.error('Error downloading file');
+          } finally {
+            setLoading(false);
           }
         });
+      } else {
+        toast.error('No current user, please log in.');
+        router.push('/login');
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error downloading file:', error);
-    } finally {
+    } catch (generalError) {
+      console.error('General download error:', generalError);
+      toast.error('Error downloading file');
       setLoading(false);
     }
   };
 
-  // Handle file deletion via API Gateway
+  // Handle file deletion
   const handleDelete = async (fileName: string) => {
     setLoading(true);
     try {
       const currentUser = userPool.getCurrentUser();
-
       if (currentUser) {
         currentUser.getSession(async (err: any, session: any) => {
           if (err) {
             console.error('Error getting session:', err);
-          } else {
+            toast.error('Session error, please log in again.');
+            router.push('/login');
+            setLoading(false);
+            return;
+          }
+
+          try {
             await axios.delete(`https://<api-endpoint>/delete/${fileName}`, {
               headers: {
                 Authorization: session.getIdToken().getJwtToken(),
               },
             });
-            alert('File deleted successfully');
-            fetchFiles(session.getIdToken().getJwtToken()); // Refresh file list
+            toast.success('File deleted successfully');
+            await fetchFiles(session.getIdToken().getJwtToken()); // Refresh file list
+          } catch (deleteError) {
+            console.error('Error deleting file:', deleteError);
+            toast.error('Error deleting file');
+          } finally {
+            setLoading(false);
           }
         });
+      } else {
+        toast.error('No current user, please log in.');
+        router.push('/login');
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-    } finally {
+    } catch (generalError) {
+      console.error('General delete error:', generalError);
+      toast.error('Error deleting file');
       setLoading(false);
     }
   };
 
-  // Handle renaming file via API Gateway
+  // Handle file renaming
   const handleRename = async (oldFileName: string, newFileName: string) => {
     if (!newFileName) return;
     setLoading(true);
     try {
       const currentUser = userPool.getCurrentUser();
-
       if (currentUser) {
         currentUser.getSession(async (err: any, session: any) => {
           if (err) {
             console.error('Error getting session:', err);
-          } else {
+            toast.error('Session error, please log in again.');
+            router.push('/login');
+            setLoading(false);
+            return;
+          }
+
+          try {
             await axios.post(
               `https://<api-endpoint>/rename`,
               { oldFileName, newFileName },
@@ -197,29 +280,43 @@ console.log("awas initi:::",awsmobile)
                 },
               }
             );
-            alert('File renamed successfully');
-            fetchFiles(session.getIdToken().getJwtToken()); // Refresh file list
+            toast.success('File renamed successfully');
+            await fetchFiles(session.getIdToken().getJwtToken()); // Refresh file list
+          } catch (renameError) {
+            console.error('Error renaming file:', renameError);
+            toast.error('Error renaming file');
+          } finally {
+            setLoading(false);
           }
         });
+      } else {
+        toast.error('No current user, please log in.');
+        router.push('/login');
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error renaming file:', error);
-    } finally {
+    } catch (generalError) {
+      console.error('General rename error:', generalError);
+      toast.error('Error renaming file');
       setLoading(false);
     }
   };
 
-  // Handle sharing a file via API Gateway
+  // Handle file sharing
   const handleShare = async (fileName: string) => {
     setLoading(true);
     try {
       const currentUser = userPool.getCurrentUser();
-
       if (currentUser) {
         currentUser.getSession(async (err: any, session: any) => {
           if (err) {
             console.error('Error getting session:', err);
-          } else {
+            toast.error('Session error, please log in again.');
+            router.push('/login');
+            setLoading(false);
+            return;
+          }
+
+          try {
             const response = await axios.post(
               `https://<api-endpoint>/share`,
               { fileName },
@@ -229,26 +326,33 @@ console.log("awas initi:::",awsmobile)
                 },
               }
             );
-            alert(`Shareable URL: ${response.data.fileUrl}`);
+            toast.success(`Shareable URL: ${response.data.fileUrl}`);
+          } catch (shareError) {
+            console.error('Error sharing file:', shareError);
+            toast.error('Error sharing file');
+          } finally {
+            setLoading(false);
           }
         });
+      } else {
+        toast.error('No current user, please log in.');
+        router.push('/login');
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error sharing file:', error);
-    } finally {
+    } catch (generalError) {
+      console.error('General share error:', generalError);
+      toast.error('Error sharing file');
       setLoading(false);
     }
   };
 
-
-    
-
   return (
     <div className="flex h-screen bg-gray-100">
+      <ToastContainer />
       {/* Sidebar */}
       <div className={`flex flex-col bg-white shadow-lg ${isSidebarOpen ? 'w-64' : 'w-20'} transition-width duration-300`}>
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className={`font-bold text-xl text-teal-600 ${!isSidebarOpen && 'hidden'}`}>Maise</div>
+          <div className={`font-bold text-xl text-teal-600 ${!isSidebarOpen && 'hidden'}`}>UCMDRIVE</div>
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             <AiOutlineMenu size={24} className="text-gray-600" />
           </button>
@@ -290,27 +394,33 @@ console.log("awas initi:::",awsmobile)
           </div>
         </header>
 
+        {/* Progress Bar */}
+        {loading && (
+          <div className="w-full h-2 bg-gray-200 mt-2">
+            <div
+              className="h-2 bg-teal-600 transition-width duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+        )}
+
         {/* Main Content */}
         <main className="p-6 flex flex-grow space-x-6">
           {/* Left Section - My Folders */}
           <section className="w-1/3 space-y-4">
             <div className="bg-white p-4 rounded-lg shadow-lg">
               <h2 className="font-bold text-lg text-gray-700 mb-4">My Folder</h2>
-              <div className="space-y-2">
-                <FolderItem label="All Files" icon={<FaFileAlt />} />
-                <FolderItem label="Daily Digests" icon={<BiNews />} />
-                <FolderItem label="Other" icon={<MdMiscellaneousServices />} />
-                <FolderItem label="Starred" icon={<FaStar />} />
-                <FolderItem label="Deleted" icon={<FaTrash />} />
-              </div>
+              <FolderItem label="All Files" icon={<FaFileAlt />} />
+              <FolderItem label="Daily Digests" icon={<BiNews />} />
+              <FolderItem label="Other" icon={<MdMiscellaneousServices />} />
+              <FolderItem label="Starred" icon={<FaStar />} />
+              <FolderItem label="Deleted" icon={<FaTrash />} />
             </div>
             <div className="bg-white p-4 rounded-lg shadow-lg">
               <h2 className="font-bold text-lg text-gray-700 mb-4">Shared Folders</h2>
-              <div className="space-y-2">
-                <FolderItem label="Eve's Folder" icon={<BiFolderMinus />} />
-                <FolderItem label="Adam's Drive" icon={<MdStorage />} />
-                <FolderItem label="Sam's Storage" icon={<MdSdStorage />} />
-              </div>
+              <FolderItem label="Eve's Folder" icon={<BiFolderMinus />} />
+              <FolderItem label="Adam's Drive" icon={<MdStorage />} />
+              <FolderItem label="Sam's Storage" icon={<MdSdStorage />} />
             </div>
           </section>
 
@@ -355,7 +465,6 @@ console.log("awas initi:::",awsmobile)
   );
 };
 
-// Component for a navigation item
 const NavItem = ({ isOpen, icon, label }: { isOpen: boolean; icon: ReactNode; label: string }) => (
   <div className="flex items-center space-x-4 cursor-pointer hover:bg-gray-200 p-2 rounded-lg">
     {icon}
@@ -363,7 +472,6 @@ const NavItem = ({ isOpen, icon, label }: { isOpen: boolean; icon: ReactNode; la
   </div>
 );
 
-// Component for a folder item
 const FolderItem = ({ label, icon }: { icon: ReactNode; label: string }) => (
   <div className="flex items-center justify-between text-gray-700 p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
     <span>{label}</span>
@@ -371,7 +479,6 @@ const FolderItem = ({ label, icon }: { icon: ReactNode; label: string }) => (
   </div>
 );
 
-// Component for a file item
 const FileItem = ({
   fileName,
   fileType,
@@ -394,11 +501,11 @@ const FileItem = ({
       </div>
     </div>
     <button onClick={onDelete} className="text-red-600 hover:text-teal-500 focus:outline-none">
-      {/* Three dots for menu actions */}
       <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>
   </div>
 );
+
 export default Home;
