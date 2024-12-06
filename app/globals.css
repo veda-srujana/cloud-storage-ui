@@ -15,6 +15,7 @@ html {
   font-family: 'Inter', sans-serif;
 }
 
+
 body {
   @apply bg-gray-50 text-gray-800;
   margin: 0;
@@ -56,4 +57,53 @@ input, textarea, select {
 
 .dark input, .dark textarea, .dark select {
   @apply border-gray-600 bg-gray-800 text-gray-100 placeholder-gray-400;
+}
+
+/* File: styles/globals.css */
+
+/* File: styles/globals.css */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Dark Mode Styles (Optional) */
+.dark-mode {
+  background-color: #1a202c;
+  color: #cbd5e0;
+}
+
+.dark-mode .bg-white {
+  background-color: #2d3748;
+}
+
+.dark-mode .bg-gray-100 {
+  background-color: #4a5568;
+}
+
+.dark-mode .text-gray-700 {
+  color: #e2e8f0;
+}
+
+.dark-mode .text-gray-500 {
+  color: #a0aec0;
+}
+
+.dark-mode .border-gray-200 {
+  border-color: #4a5568;
 }

@@ -2,42 +2,18 @@
 
 "use client";
 
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios, { AxiosProgressEvent } from 'axios';
-import {
-  AiOutlineMenu,
-  AiOutlineUpload,
-  AiOutlineSetting,
-  AiOutlineUser,
-} from 'react-icons/ai';
-import {
-  BiCloudLightning,
-  BiFileBlank,
-  BiLogOut,
-} from 'react-icons/bi';
-import {
-  FaFileAlt,
-  FaStar,
-  FaTrash,
-  FaDownload,
-  FaShareAlt,
-  FaEdit,
-  FaTag,
-} from 'react-icons/fa';
-import {
-  MdFolderShared,
-  MdOutlineHelp,
-  MdPublic,
-} from 'react-icons/md';
 import { CognitoUserPool, CognitoUserSession } from 'amazon-cognito-identity-js';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import ReactTooltip, { Tooltip } from 'react-tooltip';
+import Sidebar from './components/Sidebar/Sidebar';
+import Header from './components/Header/Header';
+import FileList from './components/FileList/FileList';
 import awsmobile from '../src/aws-exports';
-import FileItem from './components/FileItem'; // Adjust the path as necessary
+import { formatBytes } from './utils/formatBytes';
 
-// AWS Cognito User Pool Configuration
 const userPoolData = {
   UserPoolId: awsmobile.aws_user_pools_id,
   ClientId: awsmobile.aws_user_pools_web_client_id,
@@ -45,91 +21,36 @@ const userPoolData = {
 
 const userPool = new CognitoUserPool(userPoolData);
 
-// NavItem Component with Tooltip
-const NavItem = ({
-  isOpen,
-  icon,
-  label,
-  onClick,
-}: {
-  isOpen: boolean;
-  icon: ReactNode;
-  label: string;
-  onClick?: () => void;
-}) => (
-  <div
-    className="flex items-center space-x-4 cursor-pointer hover:bg-gray-200 p-2 rounded-lg relative"
-    onClick={onClick}
-    data-tip={!isOpen ? label : undefined} // Show tooltip only when collapsed
-  >
-    {icon}
-    {isOpen && (
-      <span className="text-gray-700 dark:text-white font-semibold">
-        {label}
-      </span>
-    )}
-  </div>
-);
-
-// FolderItem Component with Tooltip
-const FolderItem = ({
-  label,
-  icon,
-  isActive,
-  isSidebarOpen,
-  onClick,
-}: {
-  label: string;
-  icon: ReactNode;
-  isActive: boolean;
-  isSidebarOpen: boolean;
-  onClick: () => void;
-}) => (
-  <div
-    className={`flex items-center justify-between text-gray-700 p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition mb-2 cursor-pointer relative ${
-      isActive ? 'bg-gray-200 font-semibold' : ''
-    }`}
-    onClick={onClick}
-    data-tip={!isSidebarOpen ? label : undefined} // Show tooltip only when collapsed and not active
-  >
-    <span>{label}</span>
-    {icon && <span>{icon}</span>}
-  </div>
-);
-
-// Utility function to format bytes
-const formatBytes = (bytes: number, decimals = 2) => {
-  if (bytes === 0) return '0 Bytes';
-
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = [
-    'Bytes',
-    'KiB',
-    'MiB',
-    'GiB',
-    'TiB',
-    'PiB',
-    'EiB',
-    'ZiB',
-    'YiB',
-  ];
-
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-};
+interface FileData {
+  fileName: string;
+  fileType: string;
+  size: number;
+  createdAt: string;
+  starred: boolean;
+  isDeleted: boolean;
+  isPublic: boolean;
+  sharedWith?: string[];
+  tag?: string | null;
+}
 
 const Home = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentFolder, setCurrentFolder] = useState('All Files');
   const [sortOrder, setSortOrder] = useState<string>('recent');
   const router = useRouter();
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  }, [isDarkMode]);
   useEffect(() => {
     checkUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -168,7 +89,11 @@ const Home = () => {
           },
         }
       );
-      setFiles(response.data.body as any[]);
+      const fetchedFiles: FileData[] = response.data.body.map((file: any) => ({
+        ...file,
+        tag: file.tag || null,
+      }));
+      setFiles(fetchedFiles);
     } catch (error) {
       console.error('Error fetching files:', error);
       toast.error('Error fetching files');
@@ -358,54 +283,7 @@ const Home = () => {
   };
 
   // Handle file renaming
-  const handleRename = async (fileName: string) => {
-    const newFileName = prompt('Enter new file name:', fileName);
-    if (newFileName && newFileName !== fileName) {
-      setLoading(true);
-      try {
-        const currentUser = userPool.getCurrentUser();
-        if (!currentUser) {
-          throw new Error('No current user');
-        }
-        currentUser.getSession(async (err: any, session: CognitoUserSession) => {
-          if (err) {
-            console.error('Error getting session during rename:', err);
-            toast.error('Session error, please log in again.');
-            router.push('/login');
-            setLoading(false);
-            return;
-          }
-
-          const token = session.getIdToken().getJwtToken();
-          try {
-            await axios.post(
-              `https://emklzv4cya.execute-api.us-east-1.amazonaws.com/dev/rename`,
-              { oldFileName: fileName, newFileName },
-              {
-                headers: {
-                  Authorization: token,
-                },
-              }
-            );
-            toast.success('File renamed successfully');
-            fetchFiles(token); // Refresh file list
-          } catch (renameError: any) {
-            console.error('Error renaming file:', renameError);
-            toast.error('Error renaming file');
-          } finally {
-            setLoading(false);
-          }
-        });
-      } catch (error: any) {
-        console.error('Error during rename:', error);
-        toast.error('Error renaming file');
-        setLoading(false);
-      }
-    }
-  };
-
-  // Handle file sharing
-  const handleShare = async (fileName: string) => {
+  const handleRename = async (fileName: string, newName: string) => {
     setLoading(true);
     try {
       const currentUser = userPool.getCurrentUser();
@@ -414,7 +292,7 @@ const Home = () => {
       }
       currentUser.getSession(async (err: any, session: CognitoUserSession) => {
         if (err) {
-          console.error('Error getting session during share:', err);
+          console.error('Error getting session during rename:', err);
           toast.error('Session error, please log in again.');
           router.push('/login');
           setLoading(false);
@@ -423,37 +301,40 @@ const Home = () => {
 
         const token = session.getIdToken().getJwtToken();
         try {
-          const response = await axios.post(
-            `https://emklzv4cya.execute-api.us-east-1.amazonaws.com/dev/share`,
-            { fileName },
+          await axios.post(
+            `https://emklzv4cya.execute-api.us-east-1.amazonaws.com/dev/rename`,
+            { oldFileName: fileName, newFileName: newName },
             {
               headers: {
                 Authorization: token,
               },
             }
           );
-          // Assuming the API returns a shareable URL in response.data.fileUrl
-          if (response.data && response.data.fileUrl) {
-            navigator.clipboard.writeText(response.data.fileUrl);
-            toast.success('Shareable URL copied to clipboard!');
-          } else {
-            toast.info('Shareable URL not available');
-          }
-        } catch (shareError: any) {
-          console.error('Error sharing file:', shareError);
-          toast.error('Error sharing file');
+          toast.success('File renamed successfully');
+          fetchFiles(token); // Refresh file list
+        } catch (renameError: any) {
+          console.error('Error renaming file:', renameError);
+          toast.error('Error renaming file');
         } finally {
           setLoading(false);
         }
       });
     } catch (error: any) {
-      console.error('Error during share:', error);
-      toast.error('Error sharing file');
+      console.error('Error during rename:', error);
+      toast.error('Error renaming file');
       setLoading(false);
     }
   };
 
-  // Handle toggling star status
+  // Handle file sharing
+  const handleShare = async (fileName: string) => {
+    // The actual sharing is handled within FileItem via ShareModal
+    // You can implement additional logic here if needed
+    console.log(`Sharing file: ${fileName}`);
+    toast.info('Sharing functionality handled within the Share Modal.');
+  };
+
+  // Handle toggling star status (now handled as a tag)
   const handleToggleStar = async (fileName: string) => {
     setLoading(true);
     try {
@@ -472,6 +353,7 @@ const Home = () => {
 
         const token = session.getIdToken().getJwtToken();
         try {
+          // Assuming the backend toggles the 'Star' tag
           await axios.post(
             `https://emklzv4cya.execute-api.us-east-1.amazonaws.com/dev/toggle-star`,
             { fileName },
@@ -498,49 +380,46 @@ const Home = () => {
   };
 
   // Handle tagging a file
-  const handleTag = async (fileName: string) => {
-    const tag = prompt('Enter tag for the file:', '');
-    if (tag) {
-      setLoading(true);
-      try {
-        const currentUser = userPool.getCurrentUser();
-        if (!currentUser) {
-          throw new Error('No current user');
-        }
-        currentUser.getSession(async (err: any, session: CognitoUserSession) => {
-          if (err) {
-            console.error('Error getting session during tagging:', err);
-            toast.error('Session error, please log in again.');
-            router.push('/login');
-            setLoading(false);
-            return;
-          }
-
-          const token = session.getIdToken().getJwtToken();
-          try {
-            await axios.post(
-              `https://emklzv4cya.execute-api.us-east-1.amazonaws.com/dev/tag`,
-              { fileName, tag },
-              {
-                headers: {
-                  Authorization: token,
-                },
-              }
-            );
-            toast.success('File tagged successfully');
-            fetchFiles(token); // Refresh file list
-          } catch (tagError: any) {
-            console.error('Error tagging file:', tagError);
-            toast.error('Error tagging file');
-          } finally {
-            setLoading(false);
-          }
-        });
-      } catch (error: any) {
-        console.error('Error during tagging:', error);
-        toast.error('Error tagging file');
-        setLoading(false);
+  const handleTag = async (fileName: string, newTag: string) => {
+    setLoading(true);
+    try {
+      const currentUser = userPool.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('No current user');
       }
+      currentUser.getSession(async (err: any, session: CognitoUserSession) => {
+        if (err) {
+          console.error('Error getting session during tagging:', err);
+          toast.error('Session error, please log in again.');
+          router.push('/login');
+          setLoading(false);
+          return;
+        }
+
+        const token = session.getIdToken().getJwtToken();
+        try {
+          await axios.post(
+            `https://emklzv4cya.execute-api.us-east-1.amazonaws.com/dev/tag`,
+            { fileName, tag: newTag },
+            {
+              headers: {
+                Authorization: token,
+              },
+            }
+          );
+          toast.success('File tagged successfully');
+          fetchFiles(token); // Refresh file list
+        } catch (tagError: any) {
+          console.error('Error tagging file:', tagError);
+          toast.error('Error tagging file');
+        } finally {
+          setLoading(false);
+        }
+      });
+    } catch (error: any) {
+      console.error('Error during tagging:', error);
+      toast.error('Error tagging file');
+      setLoading(false);
     }
   };
 
@@ -568,8 +447,8 @@ const Home = () => {
   // Calculate storage usage
   const STORAGE_QUOTA = 5 * 1024 * 1024 * 1024; // 5 GB in bytes
   const usedStorage = files.reduce((total, file) => total + file.size, 0);
-  const usedStorageGB = (usedStorage / (1024 ** 3)).toFixed(2);
-  const quotaGB = (STORAGE_QUOTA / (1024 ** 3)).toFixed(2);
+  const usedStorageGB = (usedStorage / 1024 ** 3).toFixed(2);
+  const quotaGB = (STORAGE_QUOTA / 1024 ** 3).toFixed(2);
   const storagePercentage = Math.min((usedStorage / STORAGE_QUOTA) * 100, 100).toFixed(2);
 
   // Sorting logic
@@ -585,169 +464,36 @@ const Home = () => {
   });
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className={`flex h-screen bg-gray-100 ${isDarkMode ? 'dark-mode' : ''}`}>
       <ToastContainer />
       {/* Sidebar */}
-      <div
-        className={`flex flex-col bg-white shadow-lg ${
-          isSidebarOpen ? 'w-64' : 'w-20'
-        } transition-width duration-300`}
-      >
-        {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div
-            className={`font-bold text-xl text-teal-600 ${
-              !isSidebarOpen && 'hidden'
-            }`}
-          >
-            UCMDRIVE
-          </div>
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-            <AiOutlineMenu size={24} className="text-gray-600" />
-          </button>
-        </div>
-        {/* Sidebar Content */}
-        <div className="flex-grow p-4 space-y-6">
-          {/* Navigation Items */}
-          <div className="border-t border-gray-200 pt-4 space-y-4">
-            <NavItem
-              isOpen={isSidebarOpen}
-              icon={<AiOutlineUser />}
-              label="Account"
-              onClick={() => {
-                // Handle Account Click
-                // e.g., navigate to account page
-              }}
-            />
-            <NavItem
-              isOpen={isSidebarOpen}
-              icon={<AiOutlineSetting />}
-              label="Settings"
-              onClick={() => {
-                // Handle Settings Click
-                // e.g., navigate to settings page
-              }}
-            />
-            <NavItem
-              isOpen={isSidebarOpen}
-              icon={<MdOutlineHelp />}
-              label="Help & Support"
-              onClick={() => {
-                // Handle Help Click
-                // e.g., open help modal or navigate to help page
-              }}
-            />
-            <NavItem
-              isOpen={isSidebarOpen}
-              icon={<BiLogOut />}
-              label="Log Out"
-              onClick={handleLogout}
-            />
-          </div>
-
-          {/* My Files Section */}
-          <div className="border-t border-gray-200 pt-4 space-y-2">
-            <h3
-              className={`text-gray-700 font-semibold ${
-                !isSidebarOpen && 'hidden'
-              }`}
-            >
-              My Files
-            </h3>
-            <FolderItem
-              label="All Files"
-              icon={<FaFileAlt />}
-              isActive={currentFolder === 'All Files'}
-              isSidebarOpen={isSidebarOpen}
-              onClick={() => handleFolderClick('All Files')}
-            />
-            <FolderItem
-              label="Recent"
-              icon={<BiCloudLightning />}
-              isActive={currentFolder === 'Recent'}
-              isSidebarOpen={isSidebarOpen}
-              onClick={() => handleFolderClick('Recent')}
-            />
-            <FolderItem
-              label="Other"
-              icon={<BiFileBlank />}
-              isActive={currentFolder === 'Other'}
-              isSidebarOpen={isSidebarOpen}
-              onClick={() => handleFolderClick('Other')}
-            />
-            <FolderItem
-              label="Starred"
-              icon={<FaStar />}
-              isActive={currentFolder === 'Starred'}
-              isSidebarOpen={isSidebarOpen}
-              onClick={() => handleFolderClick('Starred')}
-            />
-            <FolderItem
-              label="Deleted"
-              icon={<FaTrash />}
-              isActive={currentFolder === 'Deleted'}
-              isSidebarOpen={isSidebarOpen}
-              onClick={() => handleFolderClick('Deleted')}
-            />
-          </div>
-
-          {/* Shared Files Section */}
-          <div className="border-t border-gray-200 pt-4 space-y-2">
-            <h3
-              className={`text-gray-700 font-semibold ${
-                !isSidebarOpen && 'hidden'
-              }`}
-            >
-              Shared Files
-            </h3>
-            <FolderItem
-              label="Public Shared"
-              icon={<MdPublic />}
-              isActive={currentFolder === 'Public Shared'}
-              isSidebarOpen={isSidebarOpen}
-              onClick={() => handleFolderClick('Public Shared')}
-            />
-            <FolderItem
-              label="Shared with People"
-              icon={<MdFolderShared />}
-              isActive={currentFolder === 'Shared with People'}
-              isSidebarOpen={isSidebarOpen}
-              onClick={() => handleFolderClick('Shared with People')}
-            />
-          </div>
-        </div>
-        {/* Sidebar Footer */}
-        <div className="p-4">
-          <select className="w-full p-2 border border-gray-300 rounded-lg">
-            <option>English (US)</option>
-            {/* Add more language options if needed */}
-          </select>
-        </div>
-      </div>
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onLogout={handleLogout}
+        currentFolder={currentFolder}
+        onFolderClick={handleFolderClick}
+      />
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-grow">
         {/* Header */}
-        <header className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 bg-white border-b border-gray-200 shadow">
-          <div className="flex flex-col w-full md:w-auto">
-            <span className="text-lg font-semibold text-gray-700">
-              Storage {usedStorageGB} GB of {quotaGB} GB used
-            </span>
-            <div className="w-full bg-gray-200 rounded-full h-4 mt-1">
-              <div
-                className="bg-teal-500 h-4 rounded-full transition-width duration-300"
-                style={{ width: `${storagePercentage}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            <label className="py-2 px-4 text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition cursor-pointer flex items-center">
-              <AiOutlineUpload size={20} className="inline mr-2" />
-              Upload Files
-              <input type="file" onChange={handleUpload} className="hidden" />
-            </label>
-          </div>
-        </header>
+        <Header
+          usedStorageGB={usedStorageGB}
+          quotaGB={quotaGB}
+          storagePercentage={storagePercentage}
+          onUpload={handleUpload}
+        />
+
+        {/* Theme Toggle Button */}
+        <div className="absolute top-6 right-4">
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-2 bg-gray-200 rounded-full hover:bg-gray-300"
+            aria-label="Toggle Dark Mode"
+          >
+            {isDarkMode ? '🌞' : '🌙'}
+          </button>
+        </div>
 
         {/* Progress Bar for Upload */}
         {uploadProgress > 0 && (
@@ -762,77 +508,25 @@ const Home = () => {
         {/* Main Content */}
         <main className="p-6 flex flex-grow space-x-6 overflow-hidden">
           {/* Files Section */}
-          <section className="flex-grow bg-white p-4 rounded-lg shadow-lg overflow-y-auto">
-            {/* Search and Sorting */}
-            <div className="flex justify-between items-center mb-4">
-              <input
-                type="text"
-                placeholder="Type to search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              />
-              <select
-                className="ml-4 p-2 border border-gray-300 rounded-lg"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-              >
-                <option value="recent">Recently Added</option>
-                <option value="size">File Size</option>
-                <option value="alphabetical">Alphabetical</option>
-              </select>
-            </div>
-
-            {loading ? (
-              <div className="text-center text-gray-500">Loading...</div>
-            ) : (
-              <div className="space-y-4">
-                {/* File List */}
-                {sortedFiles
-                  .filter((file: any) => {
-                    // Implement filtering based on currentFolder
-                    if (currentFolder === 'All Files') return true;
-                    if (currentFolder === 'Starred') return file.starred;
-                    if (currentFolder === 'Deleted') return file.isDeleted;
-                    if (currentFolder === 'Public Shared') return file.isPublic;
-                    if (currentFolder === 'Recent') {
-                      // Implement logic to determine if the file is recent
-                      const oneWeekAgo = new Date();
-                      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-                      const fileDate = new Date(file.createdAt);
-                      return fileDate >= oneWeekAgo;
-                    }
-                    if (currentFolder === 'Shared with People')
-                      return file.sharedWith && file.sharedWith.length > 0;
-                    if (currentFolder === 'Other')
-                      return !file.isPublic && (!file.sharedWith || file.sharedWith.length === 0);
-                    return true;
-                  })
-                  .filter((file: any) =>
-                    file.fileName.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((file: any, index: number) => (
-                    <FileItem
-                      key={index}
-                      fileName={file.fileName}
-                      fileType={file.fileType}
-                      fileSize={formatBytes(file.size)}
-                      onDelete={() => handleDelete(file.fileName)}
-                      onDownload={() => handleDownload(file.fileName)}
-                      onRename={() => handleRename(file.fileName)}
-                      onShare={() => handleShare(file.fileName)}
-                      onToggleStar={() => handleToggleStar(file.fileName)}
-                      onTag={() => handleTag(file.fileName)}
-                      starred={file.starred}
-                    />
-                  ))}
-              </div>
-            )}
-          </section>
+          <FileList
+            files={sortedFiles}
+            loading={loading}
+            searchTerm={searchTerm}
+            onSearchChange={(e) => setSearchTerm(e.target.value)}
+            sortOrder={sortOrder}
+            onSortChange={(e) => setSortOrder(e.target.value)}
+            handleDelete={(fileName) => handleDelete(fileName)}
+            handleDownload={(fileName) => handleDownload(fileName)}
+            handleRename={(fileName: string, newName: string) => handleRename(fileName, newName)}
+            handleShare={(fileName) => handleShare(fileName)}
+            handleToggleStar={(fileName) => handleToggleStar(fileName)}
+            handleTag={(fileName: string, newTag: string) => handleTag(fileName, newTag)}
+          />
         </main>
       </div>
+
       {/* Initialize Tooltips */}
-      <Tooltip place="right" variant="dark" />
+      {/* ReactTooltip is already initialized in individual components */}
     </div>
   );
 };

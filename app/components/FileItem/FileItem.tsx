@@ -1,13 +1,8 @@
-// File: components/FileItem.tsx
+// File: components/FileItem/FileItem.tsx
 
-import React, { ReactNode } from 'react';
-import {
-  Menu,
-  Item,
-  useContextMenu,
-} from 'react-contexify';
+import React, { ReactNode, useState } from 'react';
+import { Menu, Item, useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
-import ReactTooltip, { Tooltip } from 'react-tooltip';
 import {
   FaDownload,
   FaStar,
@@ -25,15 +20,22 @@ import {
   FaFileAudio,
   FaFileCode,
 } from 'react-icons/fa';
+import ReactTooltip, { Tooltip } from 'react-tooltip';
+import ShareModal from './ShareModal';
+import RenameModal from './RenameModal';
+import TagModal from './TagModal';
 
-// File Type Icons Mapping
 const fileTypeIcons: { [key: string]: ReactNode } = {
   'application/pdf': <FaFilePdf className="text-red-500" />,
   'image/jpeg': <FaFileImage className="text-yellow-500" />,
   'image/png': <FaFileImage className="text-yellow-500" />,
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': <FaFileWord className="text-blue-500" />,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (
+    <FaFileWord className="text-blue-500" />
+  ),
   'application/msword': <FaFileWord className="text-blue-500" />,
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': <FaFileExcel className="text-green-500" />,
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (
+    <FaFileExcel className="text-green-500" />
+  ),
   'application/vnd.ms-excel': <FaFileExcel className="text-green-500" />,
   'application/zip': <FaFileArchive className="text-gray-500" />,
   'application/x-rar-compressed': <FaFileArchive className="text-gray-500" />,
@@ -50,11 +52,12 @@ interface FileItemProps {
   fileSize: string;
   onDelete: () => void;
   onDownload: () => void;
-  onRename: () => void;
+  onRename: (newName: string) => void;
   onShare: () => void;
   onToggleStar: () => void;
-  onTag: () => void;
+  onTag: (tag: string) => void;
   starred: boolean;
+  tag: string | null;
 }
 
 const FileItem: React.FC<FileItemProps> = ({
@@ -68,6 +71,7 @@ const FileItem: React.FC<FileItemProps> = ({
   onToggleStar,
   onTag,
   starred,
+  tag,
 }) => {
   const MENU_ID = `menu-${fileName}`;
   const { show } = useContextMenu({
@@ -76,15 +80,48 @@ const FileItem: React.FC<FileItemProps> = ({
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
-    show({ event }); // Correctly pass an object with the event property
+    show({ event });
   };
 
-  // Select icon based on fileType, default to FaFileAlt if not found
   const FileIcon = fileTypeIcons[fileType] || <FaFileAlt className="text-gray-500" />;
+
+  // State for Modals
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+
+  // State for Internal Users (could be fetched from an API)
+  const [internalUsers, setInternalUsers] = useState<string[]>([
+    'Alice',
+    'Bob',
+    'Charlie',
+    'David',
+    'Eve',
+    // Add more users or fetch from API
+  ]);
+
+  const handleSharePublic = () => {
+    // Implement API call to share publicly
+    onShare(); // Modify as needed
+  };
+
+  const handleShareInternal = (selectedUsers: string[]) => {
+    // Implement API call to share with selected internal users
+    console.log('Sharing with internal users:', selectedUsers);
+    onShare(); // Modify as needed
+  };
+
+  const handleRename = (newName: string) => {
+    onRename(newName);
+  };
+
+  const handleTag = (newTag: string) => {
+    onTag(newTag);
+  };
 
   return (
     <div onContextMenu={handleContextMenu}>
-      <div className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer">
+      <div className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer relative">
         <div className="flex items-center space-x-4">
           {FileIcon}
           <div>
@@ -92,6 +129,13 @@ const FileItem: React.FC<FileItemProps> = ({
             <div className="text-sm text-gray-500">
               {fileType} - {fileSize}
             </div>
+            {tag && (
+              <div className="mt-1">
+                <span className="inline-block bg-teal-200 text-teal-800 text-xs px-2 py-1 rounded-full">
+                  {tag}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex space-x-2">
@@ -103,6 +147,7 @@ const FileItem: React.FC<FileItemProps> = ({
               e.stopPropagation();
               onDownload();
             }}
+            aria-label="Download File"
           />
           <FaStar
             className={`text-yellow-500 hover:text-yellow-700 cursor-pointer ${
@@ -111,32 +156,41 @@ const FileItem: React.FC<FileItemProps> = ({
             data-tip={starred ? 'Unstar' : 'Star'}
             onClick={(e) => {
               e.stopPropagation();
-              onToggleStar();
+              // Toggle star as a tag
+              if (tag === 'Star') {
+                onTag(''); // Remove tag
+              } else {
+                onTag('Star'); // Set tag to 'Star'
+              }
             }}
+            aria-label="Star File"
           />
           <FaEdit
             className="text-green-500 hover:text-green-700 cursor-pointer"
             data-tip="Rename"
             onClick={(e) => {
               e.stopPropagation();
-              onRename();
+              setIsRenameModalOpen(true);
             }}
+            aria-label="Rename File"
           />
           <FaShareAlt
             className="text-purple-500 hover:text-purple-700 cursor-pointer"
             data-tip="Share"
             onClick={(e) => {
               e.stopPropagation();
-              onShare();
+              setIsShareModalOpen(true);
             }}
+            aria-label="Share File"
           />
           <FaTag
             className="text-indigo-500 hover:text-indigo-700 cursor-pointer"
             data-tip="Tag"
             onClick={(e) => {
               e.stopPropagation();
-              onTag();
+              setIsTagModalOpen(true);
             }}
+            aria-label="Tag File"
           />
           <FaTrash
             className="text-red-500 hover:text-red-700 cursor-pointer"
@@ -145,6 +199,7 @@ const FileItem: React.FC<FileItemProps> = ({
               e.stopPropagation();
               onDelete();
             }}
+            aria-label="Delete File"
           />
         </div>
       </div>
@@ -154,16 +209,24 @@ const FileItem: React.FC<FileItemProps> = ({
         <Item onClick={onDownload}>
           <FaDownload className="inline mr-2" /> Download
         </Item>
-        <Item onClick={onShare}>
+        <Item onClick={() => setIsShareModalOpen(true)}>
           <FaShareAlt className="inline mr-2" /> Share
         </Item>
-        <Item onClick={onRename}>
+        <Item onClick={() => setIsRenameModalOpen(true)}>
           <FaEdit className="inline mr-2" /> Rename
         </Item>
-        <Item onClick={onToggleStar}>
-          <FaStar className="inline mr-2" /> {starred ? 'Unstar' : 'Star'}
+        <Item
+          onClick={() => {
+            if (tag === 'Star') {
+              onTag(''); // Remove tag
+            } else {
+              onTag('Star'); // Set tag to 'Star'
+            }
+          }}
+        >
+          <FaStar className="inline mr-2" /> {tag === 'Star' ? 'Unstar' : 'Star'}
         </Item>
-        <Item onClick={onTag}>
+        <Item onClick={() => setIsTagModalOpen(true)}>
           <FaTag className="inline mr-2" /> Tag
         </Item>
         <Item onClick={onDelete}>
@@ -171,8 +234,33 @@ const FileItem: React.FC<FileItemProps> = ({
         </Item>
       </Menu>
 
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        onSharePublic={handleSharePublic}
+        onShareInternal={handleShareInternal}
+        internalUsers={internalUsers}
+      />
+
+      {/* Rename Modal */}
+      <RenameModal
+        isOpen={isRenameModalOpen}
+        onClose={() => setIsRenameModalOpen(false)}
+        onRename={handleRename}
+        currentName={fileName}
+      />
+
+      {/* Tag Modal */}
+      <TagModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        onTag={handleTag}
+        currentTag={tag}
+      />
+
       {/* Initialize Tooltips */}
-      <Tooltip place="top" variant="dark"  />
+      <Tooltip place="top" variant="dark" />
     </div>
   );
 };
