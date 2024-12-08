@@ -20,7 +20,7 @@ import {
   FaFileAudio,
   FaFileCode,
 } from 'react-icons/fa';
-import ReactTooltip, { Tooltip } from 'react-tooltip';
+import { Tooltip } from 'react-tooltip';
 import ShareModal from './ShareModal';
 import RenameModal from './RenameModal';
 import TagModal from './TagModal';

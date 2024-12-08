@@ -12,7 +12,6 @@ import Sidebar from './components/Sidebar/Sidebar';
 import Header from './components/Header/Header';
 import FileList from './components/FileList/FileList';
 import awsmobile from '../src/aws-exports';
-import { formatBytes } from './utils/formatBytes';
 import { FileData } from './types/FileData';
 
 const userPoolData = {
@@ -24,7 +23,7 @@ const userPool = new CognitoUserPool(userPoolData);
 
 
 const Home = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen] = useState(true);
   const [files, setFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +70,7 @@ const Home = () => {
       let query:{search? :string,tag?:string,isDeleted?:boolean,isPublic?:boolean}={search:''}
       switch (currentFolder) {
         case 'All Files':
-          query;
+          query={};
           break;
 
           case 'Recent':
@@ -119,7 +118,7 @@ const Home = () => {
       toast.error('No file selected.');
       return;
     }
-    let file: File = event.target.files?.[0];
+    const file: File = event.target.files?.[0];
     if (!file) return; // No file selected, nothing to upload
 
     const maxSize = 10 * 1024 * 1024; // 10 MB

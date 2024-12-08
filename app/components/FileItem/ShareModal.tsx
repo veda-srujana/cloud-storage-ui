@@ -4,7 +4,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { FaCheck, FaTimes } from 'react-icons/fa';
 import { CognitoUserPool, CognitoUserSession } from 'amazon-cognito-identity-js';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import awsmobile from '../../../src/aws-exports';
 import { redirect } from 'next/navigation';
 
@@ -32,7 +32,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [shareType, setShareType] = useState<'public' | 'internal' | null>(null);
   const [internalUsers, setInternalUsers] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {

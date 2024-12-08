@@ -1,6 +1,6 @@
 // File: components/Sidebar/Sidebar.tsx
 
-import React, { ReactNode } from 'react';
+import React from 'react';
 import NavItem from './NavItem';
 import FolderItem from './FolderItem';
 import { AiOutlineUser, AiOutlineSetting } from 'react-icons/ai';

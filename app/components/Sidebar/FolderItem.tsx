@@ -1,7 +1,7 @@
 // File: components/Sidebar/FolderItem.tsx
 
 import React, { ReactNode } from 'react';
-import ReactTooltip, { Tooltip } from 'react-tooltip';
+import { Tooltip } from 'react-tooltip';
 
 interface FolderItemProps {
   label: string;

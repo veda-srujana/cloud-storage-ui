@@ -1,7 +1,7 @@
 // File: components/Sidebar/NavItem.tsx
 
 import React, { ReactNode } from 'react';
-import ReactTooltip, { Tooltip } from 'react-tooltip';
+import  { Tooltip } from 'react-tooltip';
 
 interface NavItemProps {
   isOpen: boolean;
