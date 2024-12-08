@@ -108,15 +108,10 @@ exports.handler = async (event) => {
 
     return {
         statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "OPTIONS,POST",
-          "Access-Control-Allow-Headers": "Content-Type"
-        },
-      body: JSON.stringify({
+      body: {
         message: "File marked as deleted successfully",
         updatedAttributes: updateResult.Attributes,
-      }),
+      },
     };
   } catch (error) {
     console.error("Error marking file as deleted:", error);

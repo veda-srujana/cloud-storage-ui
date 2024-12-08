@@ -40,7 +40,9 @@ const ddbDocClient = DynamoDBDocumentClient.from(ddbClient);
 exports.handler = async (event) => {
   try {
     // Parse the request body
-    const { fileId, newTag, userId } = JSON.parse(event);
+    console.log("event:::", event);
+
+    const { fileId, newTag, userId } = event;
 
     // Validate input
     if (!fileId || !newTag) {
@@ -88,10 +90,10 @@ exports.handler = async (event) => {
 
     // Optional: Validate the newTag against a list of allowed tags
     const allowedTags = ["Recent", "Star", "Important", "Personal", "Work"]; // Customize as needed
-    if (!allowedTags.includes(newTag)) {
+    if (!(newTag)) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: `Invalid tag. Allowed tags are: ${allowedTags.join(", ")}` }),
+        body: JSON.stringify({ message: `Invalid tag. Tag can't be empty` }),
       };
     }
 
@@ -118,10 +120,10 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
+      body: {
         message: "File tag updated successfully",
         updatedAttributes: updateResult.Attributes,
-      }),
+      },
     };
   } catch (error) {
     console.error("Error updating file tag:", error);

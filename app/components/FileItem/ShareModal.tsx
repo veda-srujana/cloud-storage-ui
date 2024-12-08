@@ -65,7 +65,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
           },
         }
       );
-      setInternalUsers(response.data.body.users);
+      console.log(response.data.body.users)
+      const users=response.data.body.users;
+      setInternalUsers(users);
     })
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -73,9 +75,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
     }
   };
 
-  const handleUserSelection = (user: string) => {
+  const handleUserSelection = (userId: string) => {
     setSelectedUsers((prev) =>
-      prev.includes(user) ? prev.filter((u) => u !== user) : [...prev, user]
+      prev.includes(userId) ? prev.filter((u) => u !== userId) : [...prev, userId]
     );
   };
 
@@ -141,7 +143,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                     checked={selectedUsers.includes(user.userId)}
                     onChange={() => handleUserSelection(user.userId)}
                   />
-                  <span className="ml-2">{user.attributeList.given_name}</span>
+                  <span className="ml-2">{user.given_name}</span>
                 </label>
               ))}
             </div>

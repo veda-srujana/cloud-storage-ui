@@ -218,7 +218,7 @@ const Home = () => {
           if (!file) throw new Error('File not found');
 
           const response = await axios.get(
-            `https://your-api-endpoint/dev/download/${file.fileName}`,
+            `https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files/download/${file.fileId}`,
             {
               headers: {
                 Authorization: token,
@@ -328,11 +328,11 @@ const Home = () => {
         const token = session.getIdToken().getJwtToken();
         try {
           await axios.patch(
-            `https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files/rename/${file.fileId}?newFileName=${newName}`,
+            `https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files/rename/${file.fileId}`,{newFileName:newName},
             {
-              headers: {
-                Authorization: token,
-              },
+                headers: {
+                  Authorization: token,
+                },
             }
           );
           toast.success('File renamed successfully');
@@ -376,9 +376,9 @@ const Home = () => {
 
       const token = session.getIdToken().getJwtToken();
       try {
-        const response = await axios.post(
-          `https://your-api-endpoint/dev/share/public`,
-          { fileId: file.fileId },
+        const response = await axios.patch(
+          `https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files/share/${file.fileId}`,
+          { isPublic: true },
           {
             headers: {
               Authorization: token,
@@ -386,8 +386,9 @@ const Home = () => {
           }
         );
         // Assuming the API returns a shareable URL in response.data.shareUrl
-        if (response.data && response.data.shareUrl) {
-          navigator.clipboard.writeText(response.data.shareUrl);
+        const publicUrl=JSON.parse(response.data.body).publicURL
+        if (publicUrl) {
+          navigator.clipboard.writeText(publicUrl);
           toast.success('Public shareable URL copied to clipboard!');
         } else {
           toast.info('Public shareable URL not available');
@@ -430,9 +431,9 @@ const handleShareInternal = async (fileId: string, selectedUsers: string[]) => {
 
       const token = session.getIdToken().getJwtToken();
       try {
-        await axios.post(
-          `https://your-api-endpoint/dev/share/internal`,
-          { fileId: file.fileId, sharedWith: selectedUsers },
+        await axios.patch(
+          `https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files/share/${file.fileId}`,
+          { shareWith: selectedUsers },
           {
             headers: {
               Authorization: token,
@@ -493,7 +494,7 @@ const handleTagAction = async (fileId: string, newTag: string) => {
       const token = session.getIdToken().getJwtToken();
       try {
         await axios.patch(
-          `https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files/rename/${file.fileId}?newTag=${newTag}`,
+          `https://0d2uv8jpwh.execute-api.us-east-1.amazonaws.com/dev/files/tag/${file.fileId}`,{newTag},
           {
             headers: {
               Authorization: token,

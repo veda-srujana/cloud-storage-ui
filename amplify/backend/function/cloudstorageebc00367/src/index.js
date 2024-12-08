@@ -40,7 +40,8 @@ Amplify Params - DO NOT EDIT */
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
-const { S3Client, CopyObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
+
 
 // Initialize AWS SDK v3 Clients
 const ddbClient = new DynamoDBClient({ region: process.env.REGION });
@@ -51,7 +52,9 @@ const s3Client = new S3Client({ region: process.env.REGION });
 exports.handler = async (event) => {
   try {
     // Parse the request body
-    const { userId, email, username, fileId , newFileName} = event;
+    console.log("event:::", event);
+
+    const { userId, fileId , newFileName} = event;
 
     // Validate input
     if (!fileId) {
@@ -94,12 +97,14 @@ exports.handler = async (event) => {
     }
 
     const bucketName = process.env.STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME;
+    console.log("bukcname:::", bucketName);
 
     // Check if the newFileName already exists to prevent overwriting
     const headParams = {
       Bucket: bucketName,
       Key: `${userId}/${fileId}-${newFileName}`,
     };
+    console.log("bucket params:::", event);
 
     try {
       await s3Client.send(new HeadObjectCommand(headParams));
@@ -109,19 +114,24 @@ exports.handler = async (event) => {
         body: JSON.stringify({ message: "A file with the newFileName already exists" }),
       };
     } catch (headErr) {
+      console.log("error in finding file:::",headErr)
       if (headErr.name !== 'NotFound') {
         // An unexpected error occurred
         throw headErr;
       }
+
       // File does not exist, proceed with renaming
     }
-
+    const sourceKey = `${userId}/${fileId}-${fileMetadata.fileName}`;
+const destinationKey = `${userId}/${fileId}-${newFileName}`;
+    
     // Copy file to new key in S3
     const copyParams = {
       Bucket: bucketName,
-      CopySource: `${userId}/${fileId}-${fileMetadata.fileName}`,
-      Key: `${userId}/${fileId}-${newFileName}`,
+      CopySource: `${bucketName}/${sourceKey}`, // Must include the bucket name here
+      Key: destinationKey,
     };
+    console.log("copy existing file params:::", copyParams);
 
     const copyCommand = new CopyObjectCommand(copyParams);
     await s3Client.send(copyCommand);
@@ -129,8 +139,9 @@ exports.handler = async (event) => {
     // Delete old file in S3
     const deleteParams = {
       Bucket: bucketName,
-      Key: `${userId}/${fileId}-${fileMetadata.fileName}`,
+      Key: sourceKey,
     };
+    console.log("delete existing file params:::", deleteParams);
 
     const deleteCommand = new DeleteObjectCommand(deleteParams);
     await s3Client.send(deleteCommand);
@@ -156,15 +167,10 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "OPTIONS,POST",
-      "Access-Control-Allow-Headers": "Content-Type"
-    },
-      body: JSON.stringify({
+      body: {
         message: "File renamed successfully",
         updatedAttributes: updateResult.Attributes,
-      }),
+      },
     };
   } catch (error) {
     console.error("Error renaming file:", error);

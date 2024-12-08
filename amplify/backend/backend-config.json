@@ -271,6 +271,36 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
+    "publicDownload": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "cloudstorage029cbf24"
+        },
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "s30dce74bf"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn",
+            "StreamArn"
+          ],
+          "category": "storage",
+          "resourceName": "storagedynamo"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "taglambda": {
       "build": true,
       "dependsOn": [
@@ -428,6 +458,22 @@
         {
           "category": "function",
           "resourceName": "lambdaAuthorizer"
+        }
+      ]
+    },
+    "AMPLIFY_function_publicDownload_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "publicDownload"
+        }
+      ]
+    },
+    "AMPLIFY_function_publicDownload_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "publicDownload"
         }
       ]
     },

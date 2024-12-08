@@ -32,19 +32,19 @@
         },
         "cloudstorage4c15b46d": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorage4c15b46d-52317a35754347494f2f-build.zip"
+          "s3Key": "amplify-builds/cloudstorage4c15b46d-494f4245723552727046-build.zip"
         },
         "cloudstorageebc00367": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageebc00367-4d4e424d767279786f55-build.zip"
+          "s3Key": "amplify-builds/cloudstorageebc00367-4b446e6f7361354d6464-build.zip"
         },
         "cloudstorageaf66d458": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageaf66d458-6f66546e7866574f354d-build.zip"
+          "s3Key": "amplify-builds/cloudstorageaf66d458-747250576e4d6a533070-build.zip"
         },
         "cloudstorageb6c9a56c": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageb6c9a56c-663068445841385a3273-build.zip"
+          "s3Key": "amplify-builds/cloudstorageb6c9a56c-547272724d4864376c62-build.zip"
         },
         "cloudstorageccb51200": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
@@ -52,11 +52,15 @@
         },
         "userslambda": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/userslambda-45536e577242434f4e67-build.zip"
+          "s3Key": "amplify-builds/userslambda-526b43795a376e6d6e38-build.zip"
         },
         "taglambda": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/taglambda-4557414576537563342b-build.zip"
+          "s3Key": "amplify-builds/taglambda-616c515941343254484e-build.zip"
+        },
+        "publicDownload": {
+          "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
+          "s3Key": "amplify-builds/publicDownload-57666247572b30373673-build.zip"
         }
       },
       "api": {

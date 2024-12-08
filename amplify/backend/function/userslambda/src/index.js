@@ -41,21 +41,33 @@ exports.handler = async (event) => {
       paginationToken = response.PaginationToken;
     } while (paginationToken);
 
+    console.log("userss:::",users)
+
+    console.log("userss:attribute::",users[0].Attributes)
+
     // Format the users data as needed
-    const formattedUsers = users.map(user => ({
-      userId: user.Username,
-      attributes: user.Attributes.reduce((acc, attr) => {
-        acc[attr.Name] = attr.Value;
-        return acc;
-      }, {}),
-    }));
+    const formattedUsers = users.map(user => {
+        // Convert the Attributes array into a key-value object
+        const attrs = user.Attributes.reduce((acc, { Name, Value }) => {
+          acc[Name] = Value;
+          return acc;
+        }, {});
+      
+        return {
+          userId: user.Username,
+          email: attrs.email,
+          given_name: attrs.given_name,
+          family_name: attrs.family_name,
+        };
+      });
+      
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ users: formattedUsers }),
+      body: { users: formattedUsers },
     };
   } catch (error) {
     console.error('Error listing users:', error);

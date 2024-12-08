@@ -28,7 +28,7 @@ exports.handler = async (event) => {
     // Parse the request body
 
     console.log(event,"event::::::",event)
-    const { fileId,userId } = JSON.parse(event);
+    const { fileId } = event.pathParameters || {};
 
     // Validate input
     if (!fileId) {
@@ -76,9 +76,7 @@ exports.handler = async (event) => {
     const fileMetadata = item;
 
     // Validate ownership or access via 'sharedWith'
-    const isOwner = fileMetadata.userId === userId;
-    const sharedWith = fileMetadata.sharedWith || [];
-    const hasAccess = isOwner || sharedWith.includes(userId);
+    const hasAccess = fileMetadata.isPublic 
 
     if (!hasAccess) {
       return {
@@ -94,6 +92,8 @@ exports.handler = async (event) => {
         body: JSON.stringify({ message: "File is marked as deleted and cannot be downloaded" }),
       };
     }
+
+    
 
     // Fetch the file from S3
     const bucketName = process.env.STORAGE_CLOUDSTORAGEBUCKET_BUCKETNAME;
@@ -127,10 +127,13 @@ exports.handler = async (event) => {
       headers: {
         'Content-Type': mimeType,
         'Content-Disposition': `attachment; filename="${fileMetadata.fileName}"`,
+        "Access-Control-Allow-Origin": "*", // CORS header
+
       },
       isBase64Encoded: true,
       body: base64File,
     };
+    
   } catch (error) {
     console.error("Error downloading file:", error);
     return {
