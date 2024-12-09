@@ -40,7 +40,7 @@
         },
         "cloudstorageaf66d458": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",
-          "s3Key": "amplify-builds/cloudstorageaf66d458-747250576e4d6a533070-build.zip"
+          "s3Key": "amplify-builds/cloudstorageaf66d458-7251394476774332716d-build.zip"
         },
         "cloudstorageb6c9a56c": {
           "deploymentBucketName": "amplify-cloudstorage-dev-af903-deployment",

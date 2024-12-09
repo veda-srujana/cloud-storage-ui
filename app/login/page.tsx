@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { useState, FormEvent } from 'react';
 import { CognitoUserPool, AuthenticationDetails, CognitoUser } from 'amazon-cognito-identity-js';
@@ -109,7 +110,7 @@ const Login = () => {
           </button>
         </form>
         <p className="mt-6 text-center text-gray-600">
-          Don't have an account?{' '}
+          Don&qout;t have an account?{' '}
           <Link href="/signup" className="text-blue-600 hover:text-blue-800 font-semibold">
             Sign Up
           </Link>
