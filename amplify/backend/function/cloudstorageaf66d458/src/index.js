@@ -13,7 +13,7 @@ exports.handler = async (event) => {
 
   try {
     // Parse the request body
-    let { userId, fileId, shareWith, isPublic } = event;
+    let { userId, fileId, shareWith, isPublic } = JSON.parse(event);
     console.log("Received event:1", event);
 
     if (isPublic && typeof isPublic === 'string') {

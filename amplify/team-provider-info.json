@@ -71,6 +71,9 @@
         "fileDelete": {},
         "fileList": {},
         "Users": {}
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
       }
     }
   }

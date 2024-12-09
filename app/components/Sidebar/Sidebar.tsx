@@ -1,5 +1,7 @@
 // File: components/Sidebar/Sidebar.tsx
 
+"use client";
+
 import React from 'react';
 import NavItem from './NavItem';
 import FolderItem from './FolderItem';
@@ -8,6 +10,7 @@ import { MdOutlineHelp, MdPublic, MdFolderShared } from 'react-icons/md';
 import { BiLogOut, BiCloudLightning, BiFileBlank } from 'react-icons/bi';
 import { FaFileAlt, FaStar, FaTrash } from 'react-icons/fa';
 import LanguageSelector from '../FileList/LanguageSelector';
+import Image from 'next/image'; // Import Image from Next.js
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,17 +32,26 @@ const Sidebar: React.FC<SidebarProps> = ({
       } transition-width duration-300 h-full`}
     >
       {/* Sidebar Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div
-          className={`font-bold text-xl text-teal-600 ${
-            !isOpen && 'hidden'
-          }`}
-        >
-          UCMDRIVE
+      <div className="flex items-center justify-center p-4 border-b border-gray-200">
+        {/* Logo Image */}
+        <div className="flex items-center justify-center">
+          {/* Replace '/logo.svg' with the path to your actual logo */}
+          {isOpen ? (
+            <Image
+              src="/icon_logo.png" // Ensure this path is correct
+              alt="UCM Drive Logo"
+              width={100}
+              height={60}
+              className="object-contain"
+            />
+          ) : (
+            <BiCloudLightning className="text-teal-600 text-2xl" />
+          )}
         </div>
-        <button className="focus:outline-none">
-          {/* The toggle is handled in Home.tsx */}
-        </button>
+        {/* If you have a toggle button, include it here */}
+        {/* <button className="focus:outline-none">
+          {/* Toggle Icon */}
+        {/* </button> */}
       </div>
 
       {/* Sidebar Content */}
